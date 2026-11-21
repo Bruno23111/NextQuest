@@ -43,9 +43,15 @@ public sealed class PostgresTests
             Assert.Equal(20, firstPage!["items"]!.AsArray().Count);
             Assert.Equal("Game 20", firstPage["items"]![0]!["title"]!.GetValue<string>());
             Assert.True(firstPage["hasMore"]!.GetValue<bool>());
-            var secondPage = await owner.GetFromJsonAsync<JsonObject>("/api/v1/backlog?page=2&q=GAME&status=planned");
+            using var filtered = await owner.GetAsync("/api/v1/backlog?page=2&q=GAME&status=planned");
+            Assert.True(filtered.IsSuccessStatusCode, await filtered.Content.ReadAsStringAsync());
+            var secondPage = await filtered.Content.ReadFromJsonAsync<JsonObject>();
             Assert.Single(secondPage!["items"]!.AsArray());
             Assert.False(secondPage["hasMore"]!.GetValue<bool>());
+            using var invalidStatus = await owner.GetAsync("/api/v1/backlog?status=unknown");
+            Assert.Equal(HttpStatusCode.BadRequest, invalidStatus.StatusCode);
+            var invalidStatusProblem = await invalidStatus.Content.ReadFromJsonAsync<JsonObject>();
+            Assert.NotNull(invalidStatusProblem?["errors"]?["status"]);
             var literal = await owner.GetFromJsonAsync<JsonObject>("/api/v1/backlog?q=%25");
             Assert.Empty(literal!["items"]!.AsArray());
             var empty = await other.GetFromJsonAsync<JsonObject>("/api/v1/backlog");

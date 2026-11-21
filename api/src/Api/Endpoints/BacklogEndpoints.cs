@@ -5,6 +5,7 @@ using GamesBacklog.Domain;
 using Mapster;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi;
 
 namespace GamesBacklog.Api.Endpoints;
 
@@ -16,7 +17,13 @@ internal static class BacklogEndpoints
     internal static void MapBacklog(this RouteGroupBuilder api)
     {
         var backlog = api.MapGroup("/backlog").WithTags("Backlog").RequireAuthorization();
-        backlog.MapGet("", List).WithName("ListBacklog").ProducesValidationProblem().ProducesProblem(401);
+        backlog.MapGet("", List).WithName("ListBacklog").ProducesValidationProblem().ProducesProblem(401)
+            .AddOpenApiOperationTransformer((operation, context, _) =>
+            {
+                var status = operation.Parameters!.OfType<OpenApiParameter>().Single(x => x.Name == "status");
+                status.Schema = new OpenApiSchemaReference(nameof(GameStatus), context.Document);
+                return Task.CompletedTask;
+            });
         backlog.MapPost("", Create).WithName("CreateBacklog").ProducesValidationProblem().ProducesProblem(401);
         backlog.MapGet("/{id:guid}", Find).WithName("FindBacklog").ProducesProblem(404).ProducesProblem(401);
         backlog.MapPatch("/{id:guid}", Update).WithName("UpdateBacklog")
@@ -41,9 +48,19 @@ internal static class BacklogEndpoints
 
     private static async Task<Ok<PagedResult<BacklogGame>>> List(ClaimsPrincipal user, BacklogService service,
         TypeAdapterConfig mapping, IValidator<BacklogQuery> rules, CancellationToken ct,
-        [FromQuery] string? q = null, [FromQuery] GameStatus? status = null, [FromQuery] int page = 1)
+        [FromQuery] string? q = null, [FromQuery] string? status = null, [FromQuery] int page = 1)
     {
-        var query = new BacklogQuery(q, status, page);
+        GameStatus? filter = null;
+        if (status is not null)
+        {
+            if (!Enum.TryParse<GameStatus>(status, ignoreCase: true, out var parsed) ||
+                !string.Equals(Enum.GetName(parsed), status, StringComparison.OrdinalIgnoreCase))
+                throw new ValidationException([new("status", "Informe um status válido.")]);
+
+            filter = parsed;
+        }
+
+        var query = new BacklogQuery(q, filter, page);
         await rules.ValidateAndThrowAsync(query, ct);
         var result = await service.List(Owner(user), query, ct);
         return TypedResults.Ok(new PagedResult<BacklogGame>(result.Items.Select(x => Map(x, mapping)).ToArray(),
