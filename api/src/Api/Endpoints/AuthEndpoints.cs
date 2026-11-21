@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using System.Net.Mail;
 using System.Text;
+using System.Text.Json;
 using GamesBacklog.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -10,22 +10,17 @@ using Microsoft.Extensions.Options;
 
 namespace GamesBacklog.Api.Endpoints;
 
-internal sealed record Credentials([property: Required, EmailAddress, AccountEmail, StringLength(256)] string Email,
-    [property: Required, StringLength(128)] string Password);
-internal sealed record EmailRequest([property: Required, EmailAddress, AccountEmail, StringLength(256)] string Email);
+internal interface IAuthRequest { }
+
+internal sealed record Credentials([property: Required, EmailAddress, RegularExpression(@"[^\s<>\x00]+"), StringLength(256)] string Email,
+    [property: Required, StringLength(128)] string Password) : IAuthRequest;
+internal sealed record EmailRequest([property: Required, EmailAddress, RegularExpression(@"[^\s<>\x00]+"), StringLength(256)] string Email) : IAuthRequest;
 internal sealed record SessionResponse(string TokenType, string AccessToken, long ExpiresIn, string RefreshToken);
-internal sealed record RefreshSession([property: Required, StringLength(8192)] string RefreshToken);
-internal sealed record ResetPasswordRequest([property: Required, EmailAddress, AccountEmail, StringLength(256)] string Email,
-    [property: Required, StringLength(2048)] string ResetCode, [property: Required, StringLength(128)] string NewPassword);
-
-internal sealed class AccountEmailAttribute : ValidationAttribute
-{
-    public AccountEmailAttribute() : base("Informe um endereço de e-mail válido.") { }
-
-    public override bool IsValid(object? value) =>
-        value is null || value is string email && !email.Contains('\0') &&
-        MailAddress.TryCreate(email, out var address) && address.Address == email;
-}
+internal sealed record RefreshSession([property: Required, StringLength(8192)] string RefreshToken) : IAuthRequest;
+internal sealed record ResetPasswordRequest(
+    [property: Required, EmailAddress, RegularExpression(@"[^\s<>\x00]+"), StringLength(256)] string Email,
+    [property: Required, StringLength(2048)] string ResetCode,
+    [property: Required, StringLength(128)] string NewPassword) : IAuthRequest;
 
 internal sealed class AuthLinks
 {
@@ -36,7 +31,8 @@ internal static class AuthEndpoints
 {
     internal static void MapAuth(this RouteGroupBuilder api)
     {
-        var auth = api.MapGroup("/auth").WithTags("Conta").RequireRateLimiting("auth");
+        var auth = api.MapGroup("/auth").WithTags("Conta").RequireRateLimiting("auth")
+            .AddEndpointFilter(ValidateRequest);
         auth.MapPost("/register", Register).WithName("Register").ProducesValidationProblem()
             .ProducesProblem(503).ProducesProblem(429);
         auth.MapGet("/confirmEmail", Confirm).WithName("ConfirmEmail").Produces<string>(200, "text/plain")
@@ -51,6 +47,22 @@ internal static class AuthEndpoints
             .ProducesValidationProblem().ProducesProblem(503).ProducesProblem(429);
         auth.MapPost("/resetPassword", ResetPassword).WithName("ResetPassword")
             .ProducesValidationProblem().ProducesProblem(429);
+    }
+
+    private static async ValueTask<object?> ValidateRequest(EndpointFilterInvocationContext context,
+        EndpointFilterDelegate next)
+    {
+        if (context.Arguments.OfType<IAuthRequest>().SingleOrDefault() is { } request)
+        {
+            var errors = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(request, new ValidationContext(request), errors, validateAllProperties: true))
+                return TypedResults.ValidationProblem(errors
+                    .SelectMany(error => error.MemberNames.DefaultIfEmpty("body"),
+                        (error, member) => new { Field = JsonNamingPolicy.CamelCase.ConvertName(member), error.ErrorMessage })
+                    .GroupBy(error => error.Field)
+                    .ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage!).ToArray()));
+        }
+        return await next(context);
     }
 
     private static async Task<Results<NoContent, ValidationProblem>> Register(Credentials request,

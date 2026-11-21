@@ -84,7 +84,6 @@ public static class ApiHost
                 new JsonStringEnumConverter<GameStatus>(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
         });
         services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
-        services.AddValidation();
         services.AddProblemDetails(options => options.CustomizeProblemDetails = ApiProblems.AddTraceId);
         services.AddExceptionHandler<ApiErrors>();
         services.AddOpenApi(options => options.AddDocumentTransformer(BearerOpenApi.DescribeDocument)
