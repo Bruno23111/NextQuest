@@ -1,0 +1,28 @@
+# .NET & C# build outputs
+**/bin/
+**/obj/
+**/TestResults/
+.vs/
+.idea/
+*.user
+*.suo
+.vscode/
+
+# Secrets and Environment Variables
+**/.env
+**/.env.*
+!**/.env.example
+**/.keys/
+
+# Mobile / Flutter
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/.pub-cache/
+mobile/.pub/
+
+# OS specific files
+.DS_Store
+Thumbs.db

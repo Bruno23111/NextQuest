@@ -1,0 +1,91 @@
+using System.Globalization;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using GamesBacklog.Application;
+using Microsoft.Extensions.Options;
+
+namespace GamesBacklog.Infrastructure.Catalog;
+
+public sealed class RawgOptions
+{
+    public string? ApiKey { get; set; }
+}
+
+public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options) : IGameCatalog
+{
+    public const int PageSize = 20;
+
+    public async Task<PagedResult<CatalogGame>> Search(CatalogQuery query, CancellationToken ct)
+    {
+        var search = Uri.EscapeDataString(query.Q.Trim());
+        var pageNumber = query.Page.ToString(CultureInfo.InvariantCulture);
+        var page = await Read<RawgPage>(
+            $"games?search={search}&page={pageNumber}&page_size={PageSize}", ct)
+            ?? throw new CatalogUnavailableException();
+
+        var games = (page.Results ?? throw new CatalogUnavailableException()).OfType<RawgGame>()
+            .Select(ToGame).OfType<CatalogGame>().ToArray();
+        return new(games, query.Page, PageSize, !string.IsNullOrEmpty(page.Next));
+    }
+
+    public async Task<CatalogGame?> Find(int rawgId, CancellationToken ct)
+    {
+        var game = await Read<RawgGame>($"games/{rawgId.ToString(CultureInfo.InvariantCulture)}?", ct,
+            allowNotFound: true);
+        return game is null ? null : ToGame(game) ?? throw new CatalogUnavailableException();
+    }
+
+    private async Task<T?> Read<T>(string path, CancellationToken ct, bool allowNotFound = false)
+        where T : class
+    {
+        if (string.IsNullOrWhiteSpace(options.Value.ApiKey))
+            throw new CatalogUnavailableException();
+
+        var separator = path.EndsWith('?') ? "" : "&";
+        var url = path + separator + "key=" + Uri.EscapeDataString(options.Value.ApiKey);
+        try
+        {
+            using var response = await client.GetAsync(url, ct);
+            if (allowNotFound && response.StatusCode == HttpStatusCode.NotFound) return null;
+            if (!response.IsSuccessStatusCode) throw new CatalogUnavailableException();
+
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct)
+                ?? throw new CatalogUnavailableException();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or IOException ||
+            ex is OperationCanceledException && !ct.IsCancellationRequested)
+        {
+            throw new CatalogUnavailableException();
+        }
+    }
+
+    private static CatalogGame? ToGame(RawgGame game)
+    {
+        if (game.Id <= 0 || string.IsNullOrWhiteSpace(game.Name) || game.Name.Contains('\0')) return null;
+
+        var platforms = (game.Platforms ?? []).Select(x => x?.Platform)
+            .Where(x => x is { Id: > 0 } && !string.IsNullOrWhiteSpace(x.Name) && !x.Name.Contains('\0'))
+            .Select(x => new CatalogPlatform(x!.Id, Limit(x.Name!, 100))).DistinctBy(x => x.Id).ToArray();
+        var cover = Uri.TryCreate(game.BackgroundImage, UriKind.Absolute, out var image) && image.Scheme == Uri.UriSchemeHttps
+            ? image.AbsoluteUri : null;
+
+        return new(game.Id, Limit(game.Name, 250), cover, platforms);
+    }
+
+    private static string Limit(string value, int maxLength)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Length <= maxLength) return trimmed;
+        // Preserve a complete Unicode character when the limit splits a surrogate pair.
+        return trimmed[..(char.IsHighSurrogate(trimmed[maxLength - 1]) ? maxLength - 1 : maxLength)];
+    }
+
+    private sealed record RawgPage([property: JsonRequired] RawgGame?[]? Results, string? Next);
+    private sealed record RawgGame(int Id, string? Name,
+        [property: JsonPropertyName("background_image")] string? BackgroundImage,
+        RawgPlatformReference?[]? Platforms);
+    private sealed record RawgPlatformReference(RawgPlatform? Platform);
+    private sealed record RawgPlatform(int Id, string? Name);
+}

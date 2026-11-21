@@ -1,0 +1,26 @@
+{
+  "searchResponse": {
+    "items": [
+      {
+        "rawgId": 9,
+        "title": "Jogo de exemplo",
+        "coverUrl": null,
+        "platforms": [{ "id": 42, "name": "PC" }]
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "hasMore": false
+  },
+  "importRequest": { "rawgId": 9, "platformId": 42 },
+  "duplicate": {
+    "title": "Jogo já importado para esta plataforma.",
+    "status": 409,
+    "traceId": "exemplo-catalog"
+  },
+  "unavailable": {
+    "title": "Catálogo indisponível. Tente novamente.",
+    "status": 503,
+    "traceId": "exemplo-catalog"
+  }
+}

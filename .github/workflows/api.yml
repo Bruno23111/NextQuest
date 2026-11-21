@@ -1,0 +1,35 @@
+name: API
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: gamesbacklog
+          POSTGRES_USER: gamesbacklog
+          POSTGRES_PASSWORD: local-dev-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gamesbacklog -d gamesbacklog"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      GAMESBACKLOG_TEST_POSTGRES: Host=localhost;Database=gamesbacklog;Username=gamesbacklog;Password=local-dev-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet test api/GamesBacklog.slnx --configuration Release

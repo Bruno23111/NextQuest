@@ -1,0 +1,27 @@
+{
+  "createRequest": { "title": "Meu jogo", "platform": "PC" },
+  "updateRequest": { "status": "playing" },
+  "listResponse": {
+    "items": [
+      {
+        "id": "83fdb8a5-a6e9-4284-8f14-a8a749056e0d",
+        "title": "Meu jogo",
+        "platform": "PC",
+        "status": "planned",
+        "rawgId": null,
+        "platformId": null,
+        "coverUrl": null,
+        "createdAt": "2026-11-21T18:00:00+00:00"
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "hasMore": false
+  },
+  "validationError": {
+    "title": "One or more validation errors occurred.",
+    "status": 400,
+    "errors": { "title": ["'title' must not be empty."] },
+    "traceId": "exemplo-backlog"
+  }
+}

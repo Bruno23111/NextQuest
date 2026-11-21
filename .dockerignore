@@ -1,0 +1,9 @@
+**
+!api/
+!api/Directory.Build.props
+!api/src/
+!api/src/**
+**/bin/
+**/obj/
+**/.env*
+**/.keys/

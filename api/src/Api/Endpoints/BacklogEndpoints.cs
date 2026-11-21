@@ -1,0 +1,89 @@
+using System.Security.Claims;
+using FluentValidation;
+using GamesBacklog.Application;
+using GamesBacklog.Domain;
+using Mapster;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+
+namespace GamesBacklog.Api.Endpoints;
+
+internal sealed record BacklogGame(Guid Id, string Title, string Platform, GameStatus Status,
+    int? RawgId, int? PlatformId, string? CoverUrl, DateTimeOffset CreatedAt);
+
+internal static class BacklogEndpoints
+{
+    internal static void MapBacklog(this RouteGroupBuilder api)
+    {
+        var backlog = api.MapGroup("/backlog").WithTags("Backlog").RequireAuthorization();
+        backlog.MapGet("", List).WithName("ListBacklog").ProducesValidationProblem().ProducesProblem(401);
+        backlog.MapPost("", Create).WithName("CreateBacklog").ProducesValidationProblem().ProducesProblem(401);
+        backlog.MapGet("/{id:guid}", Find).WithName("FindBacklog").ProducesProblem(404).ProducesProblem(401);
+        backlog.MapPatch("/{id:guid}", Update).WithName("UpdateBacklog")
+            .ProducesValidationProblem().ProducesProblem(404).ProducesProblem(401);
+        backlog.MapDelete("/{id:guid}", Delete).WithName("DeleteBacklog").ProducesProblem(404).ProducesProblem(401);
+        backlog.MapPost("/import", Import).WithName("ImportBacklog").RequireRateLimiting("catalog")
+            .ProducesValidationProblem().ProducesProblem(404).ProducesProblem(409).ProducesProblem(503)
+            .ProducesProblem(429).ProducesProblem(401);
+
+        api.MapGet("/catalog/games", Search).WithName("SearchCatalog").WithTags("Catálogo")
+            .RequireAuthorization().RequireRateLimiting("catalog").ProducesValidationProblem()
+            .ProducesProblem(503).ProducesProblem(429).ProducesProblem(401);
+    }
+
+    private static async Task<Ok<PagedResult<CatalogGame>>> Search(IGameCatalog catalog, IValidator<CatalogQuery> rules,
+        CancellationToken ct, [FromQuery] string q, [FromQuery] int page = 1)
+    {
+        var query = new CatalogQuery(q, page);
+        await rules.ValidateAndThrowAsync(query, ct);
+        return TypedResults.Ok(await catalog.Search(query, ct));
+    }
+
+    private static async Task<Ok<PagedResult<BacklogGame>>> List(ClaimsPrincipal user, BacklogService service,
+        TypeAdapterConfig mapping, IValidator<BacklogQuery> rules, CancellationToken ct,
+        [FromQuery] string? q = null, [FromQuery] GameStatus? status = null, [FromQuery] int page = 1)
+    {
+        var query = new BacklogQuery(q, status, page);
+        await rules.ValidateAndThrowAsync(query, ct);
+        var result = await service.List(Owner(user), query, ct);
+        return TypedResults.Ok(new PagedResult<BacklogGame>(result.Items.Select(x => Map(x, mapping)).ToArray(),
+            result.Page, result.PageSize, result.HasMore));
+    }
+
+    private static async Task<Ok<BacklogGame>> Find(Guid id, ClaimsPrincipal user, BacklogService service,
+        TypeAdapterConfig mapping, CancellationToken ct) =>
+        TypedResults.Ok(Map(await service.Find(Owner(user), id, ct), mapping));
+
+    private static async Task<CreatedAtRoute<BacklogGame>> Create(CreateGame request, ClaimsPrincipal user,
+        BacklogService service, TypeAdapterConfig mapping, IValidator<CreateGame> rules, CancellationToken ct)
+    {
+        await rules.ValidateAndThrowAsync(request, ct);
+        var game = Map(await service.Create(Owner(user), request, ct), mapping);
+        return TypedResults.CreatedAtRoute(game, "FindBacklog", new { game.Id });
+    }
+
+    private static async Task<Ok<BacklogGame>> Update(Guid id, UpdateGame request, ClaimsPrincipal user,
+        BacklogService service, TypeAdapterConfig mapping, IValidator<UpdateGame> rules, CancellationToken ct)
+    {
+        await rules.ValidateAndThrowAsync(request, ct);
+        return TypedResults.Ok(Map(await service.Update(Owner(user), id, request, ct), mapping));
+    }
+
+    private static async Task<NoContent> Delete(Guid id, ClaimsPrincipal user, BacklogService service,
+        CancellationToken ct)
+    {
+        await service.Delete(Owner(user), id, ct);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<CreatedAtRoute<BacklogGame>> Import(ImportGame request, ClaimsPrincipal user,
+        BacklogService service, TypeAdapterConfig mapping, IValidator<ImportGame> rules, CancellationToken ct)
+    {
+        await rules.ValidateAndThrowAsync(request, ct);
+        var game = Map(await service.Import(Owner(user), request, ct), mapping);
+        return TypedResults.CreatedAtRoute(game, "FindBacklog", new { game.Id });
+    }
+
+    private static Guid Owner(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private static BacklogGame Map(BacklogEntry game, TypeAdapterConfig mapping) => game.Adapt<BacklogGame>(mapping);
+}
