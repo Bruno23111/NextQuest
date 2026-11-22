@@ -1,11 +1,10 @@
 using System.Globalization;
+using GamesBacklog.Application;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace GamesBacklog.Infrastructure.Steam;
 
 public sealed record SteamAssertion(string SteamId, string Nonce);
-
-public sealed class SteamUnavailableException : Exception;
 
 public sealed class SteamOpenId(HttpClient client, TimeProvider clock)
 {

@@ -30,6 +30,10 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
             user.HasIndex(x => x.NormalizedUserName).IsUnique().HasDatabaseName(UserNameIndex);
             user.Property(x => x.SteamId).HasMaxLength(17);
             user.HasIndex(x => x.SteamId).IsUnique().HasDatabaseName(SteamUserIndex);
+            user.Property(x => x.DisplayName).HasMaxLength(60);
+            user.Property(x => x.Bio).HasMaxLength(300);
+            user.Property(x => x.AvatarUrl).HasMaxLength(2048);
+            user.Property(x => x.HeaderUrl).HasMaxLength(2048);
         });
 
         model.Entity<SteamLoginFlow>(flow =>

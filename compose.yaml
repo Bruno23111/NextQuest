@@ -1,3 +1,5 @@
+name: nextquest
+
 services:
   postgres:
     image: postgres:18

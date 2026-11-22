@@ -1215,6 +1215,361 @@
           }
         ]
       }
+    },
+    "/api/v1/catalog/popular": {
+      "get": {
+        "tags": [
+          "Catálogo"
+        ],
+        "operationId": "PopularCatalog",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfCatalogGame"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/steam/library": {
+      "get": {
+        "tags": [
+          "Steam"
+        ],
+        "operationId": "SteamLibrary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteamLibrary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/steam/games/{appId}/achievements": {
+      "get": {
+        "tags": [
+          "Steam"
+        ],
+        "operationId": "SteamGameAchievements",
+        "parameters": [
+          {
+            "name": "appId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteamGameAchievements"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/profile": {
+      "get": {
+        "tags": [
+          "Perfil"
+        ],
+        "operationId": "GetUserProfile",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Perfil"
+        ],
+        "operationId": "UpdateUserProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1340,14 +1695,9 @@
         "type": "object",
         "properties": {
           "email": {
-            "maxLength": 256,
-            "minLength": 0,
-            "pattern": "[^\\s<>\\x00]+",
             "type": "string"
           },
           "password": {
-            "maxLength": 128,
-            "minLength": 0,
             "type": "string"
           }
         }
@@ -1359,9 +1709,6 @@
         "type": "object",
         "properties": {
           "email": {
-            "maxLength": 256,
-            "minLength": 0,
-            "pattern": "[^\\s<>\\x00]+",
             "type": "string"
           }
         }
@@ -1537,15 +1884,12 @@
         "type": "object",
         "properties": {
           "state": {
-            "pattern": "[A-Za-z0-9_-]{43}",
             "type": "string"
           },
           "code": {
-            "pattern": "[A-Za-z0-9_-]{43}",
             "type": "string"
           },
           "codeVerifier": {
-            "pattern": "[A-Za-z0-9._~-]{43,128}",
             "type": "string"
           }
         }
@@ -1557,8 +1901,6 @@
         "type": "object",
         "properties": {
           "refreshToken": {
-            "maxLength": 8192,
-            "minLength": 0,
             "type": "string"
           }
         }
@@ -1572,19 +1914,12 @@
         "type": "object",
         "properties": {
           "email": {
-            "maxLength": 256,
-            "minLength": 0,
-            "pattern": "[^\\s<>\\x00]+",
             "type": "string"
           },
           "resetCode": {
-            "maxLength": 2048,
-            "minLength": 0,
             "type": "string"
           },
           "newPassword": {
-            "maxLength": 128,
-            "minLength": 0,
             "type": "string"
           }
         }
@@ -1620,7 +1955,6 @@
         "type": "object",
         "properties": {
           "codeChallenge": {
-            "pattern": "[A-Za-z0-9_-]{43}",
             "type": "string"
           }
         }
@@ -1642,6 +1976,142 @@
           "expiresIn": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "SteamAchievement": {
+        "required": [
+          "apiName",
+          "name",
+          "description",
+          "achieved",
+          "unlockedAt",
+          "iconUrl",
+          "grayIconUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "apiName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "achieved": {
+            "type": "boolean"
+          },
+          "unlockedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "iconUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "grayIconUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SteamGameAchievements": {
+        "required": [
+          "appId",
+          "gameName",
+          "unlockedCount",
+          "totalCount",
+          "achievements"
+        ],
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gameName": {
+            "type": "string"
+          },
+          "unlockedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "achievements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamAchievement"
+            }
+          }
+        }
+      },
+      "SteamLibrary": {
+        "required": [
+          "gameCount",
+          "games"
+        ],
+        "type": "object",
+        "properties": {
+          "gameCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamLibraryGame"
+            }
+          }
+        }
+      },
+      "SteamLibraryGame": {
+        "required": [
+          "appId",
+          "name",
+          "playtimeForeverMinutes",
+          "playtimeTwoWeeksMinutes",
+          "iconUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "playtimeForeverMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "playtimeTwoWeeksMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "iconUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1676,6 +2146,70 @@
             ]
           }
         }
+      },
+      "UpdateUserProfile": {
+        "required": [
+          "displayName",
+          "bio",
+          "avatarUrl",
+          "headerUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headerUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "UserProfile": {
+        "required": [
+          "displayName",
+          "bio",
+          "avatarUrl",
+          "headerUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headerUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -1695,6 +2229,12 @@
     },
     {
       "name": "Catálogo"
+    },
+    {
+      "name": "Steam"
+    },
+    {
+      "name": "Perfil"
     }
   ]
 }

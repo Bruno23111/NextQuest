@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FluentValidation;
+using GamesBacklog.Api.Contracts;
 using GamesBacklog.Application;
 using GamesBacklog.Domain;
 using Mapster;
@@ -8,9 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 
 namespace GamesBacklog.Api.Endpoints;
-
-internal sealed record BacklogGame(Guid Id, string Title, string Platform, GameStatus Status,
-    int? RawgId, int? PlatformId, string? CoverUrl, DateTimeOffset CreatedAt);
 
 internal static class BacklogEndpoints
 {
@@ -36,7 +34,13 @@ internal static class BacklogEndpoints
         api.MapGet("/catalog/games", Search).WithName("SearchCatalog").WithTags("Catálogo")
             .RequireAuthorization().RequireRateLimiting("catalog").ProducesValidationProblem()
             .ProducesProblem(503).ProducesProblem(429).ProducesProblem(401);
+        api.MapGet("/catalog/popular", Popular).WithName("PopularCatalog").WithTags("Catálogo")
+            .RequireAuthorization().RequireRateLimiting("catalog").ProducesValidationProblem()
+            .ProducesProblem(503).ProducesProblem(429).ProducesProblem(401);
     }
+
+    private static async Task<Ok<PagedResult<CatalogGame>>> Popular(IPopularGameCatalog catalog,
+        CancellationToken ct, [FromQuery] int page = 1) => TypedResults.Ok(await catalog.Popular(page, ct));
 
     private static async Task<Ok<PagedResult<CatalogGame>>> Search(IGameCatalog catalog, IValidator<CatalogQuery> rules,
         CancellationToken ct, [FromQuery] string q, [FromQuery] int page = 1)

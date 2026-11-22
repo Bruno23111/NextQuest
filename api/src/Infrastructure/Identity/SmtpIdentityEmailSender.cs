@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using GamesBacklog.Application;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
@@ -13,11 +14,6 @@ public sealed class SmtpOptions
     public string? Username { get; set; }
     public string? Password { get; set; }
     public bool EnableSsl { get; set; } = true;
-}
-
-public sealed class EmailUnavailableException : Exception
-{
-    public EmailUnavailableException() : base("Email service unavailable.") { }
 }
 
 public sealed class SmtpIdentityEmailSender(IOptions<SmtpOptions> options) : IEmailSender<BacklogUser>

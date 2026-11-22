@@ -1,4 +1,4 @@
-# 🎮 GamesBacklog
+# NextQuest
 
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/Bruno23111/Gamesbacklog/releases)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
@@ -9,7 +9,7 @@
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-v1-85EA2D?logo=openapi-initiative&logoColor=black)](specs/openapi-v1.json)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](.github/workflows/api.yml)
 
-> **GamesBacklog** é uma plataforma pessoal e privada de gerenciamento de backlog de jogos, oferecendo suporte a cadastro manual e importação enriquecida de metadados através da API da RAWG.
+> **NextQuest** é uma plataforma pessoal e privada de gerenciamento de backlog de jogos, oferecendo suporte a cadastro manual e importação enriquecida de metadados através da API da RAWG.
 
 O repositório adota **desenvolvimento orientado a especificações (Spec-Driven)** com arquitetura limpa em **ASP.NET Core 10**, contrato OpenAPI versionado e especificação completa de cliente **Flutter para Android**.
 
@@ -38,7 +38,7 @@ O repositório adota **desenvolvimento orientado a especificações (Spec-Driven
 
 ## 🚀 Visão Geral & Módulos
 
-O projeto é dividido em quatro especificações principais (localizadas na pasta [`specs/`](specs/)):
+As especificações do projeto estão na pasta [`specs/`](specs/).
 
 1. **Conta e Sessão ([Spec 001](specs/001-conta/spec.md))**
    - Cadastro seguro com confirmação via e-mail.
@@ -63,6 +63,10 @@ O projeto é dividido em quatro especificações principais (localizadas na past
    - Tema escuro de alto contraste com capas de jogos em destaque.
    - Navegação inferior: *Biblioteca*, *Buscar* e *Conta*.
    - Detalhes de implementação e arquitetura em [mobile/README.md](mobile/README.md).
+
+5. **Login Steam ([Spec 005](specs/005-login-steam/spec.md))** — Entrada e vínculo de conta via Steam.
+6. **Biblioteca Steam ([Spec 006](specs/006-dados-steam/spec.md))** — Jogos, tempo jogado e progresso de conquistas.
+7. **Perfil ([Spec 007](specs/007-perfil/spec.md))** — Nome de exibição, descrição, avatar e capa.
 
 ---
 

@@ -13,9 +13,30 @@ public sealed class RawgOptions
     public string? ApiKey { get; set; }
 }
 
-public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options) : IGameCatalog
+public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options) : IGameCatalog, IPopularGameCatalog
 {
     public const int PageSize = 20;
+    public const int PopularPageSize = 40;
+    public const int MaxPopularGames = 500;
+    public const int MaxPopularPages = (MaxPopularGames + PopularPageSize - 1) / PopularPageSize;
+
+    public async Task<PagedResult<CatalogGame>> Popular(int pageNumber, CancellationToken ct)
+    {
+        if (pageNumber is < 1 or > MaxPopularPages)
+            throw new FluentValidation.ValidationException([
+                new FluentValidation.Results.ValidationFailure("page", $"Informe uma página entre 1 e {MaxPopularPages}.")]);
+
+        var remaining = MaxPopularGames - ((pageNumber - 1) * PopularPageSize);
+        var pageSize = Math.Min(PopularPageSize, remaining);
+        var page = await Read<RawgPage>(
+            $"games?ordering=-added&page={pageNumber.ToString(CultureInfo.InvariantCulture)}&page_size={pageSize}", ct)
+            ?? throw new CatalogUnavailableException();
+
+        var games = (page.Results ?? throw new CatalogUnavailableException()).OfType<RawgGame>()
+            .Select(ToGame).OfType<CatalogGame>().ToArray();
+        return new(games, pageNumber, pageSize,
+            pageNumber < MaxPopularPages && !string.IsNullOrEmpty(page.Next));
+    }
 
     public async Task<PagedResult<CatalogGame>> Search(CatalogQuery query, CancellationToken ct)
     {
@@ -81,11 +102,4 @@ public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options
         // Preserve a complete Unicode character when the limit splits a surrogate pair.
         return trimmed[..(char.IsHighSurrogate(trimmed[maxLength - 1]) ? maxLength - 1 : maxLength)];
     }
-
-    private sealed record RawgPage([property: JsonRequired] RawgGame?[]? Results, string? Next);
-    private sealed record RawgGame(int Id, string? Name,
-        [property: JsonPropertyName("background_image")] string? BackgroundImage,
-        RawgPlatformReference?[]? Platforms);
-    private sealed record RawgPlatformReference(RawgPlatform? Platform);
-    private sealed record RawgPlatform(int Id, string? Name);
 }

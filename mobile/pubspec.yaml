@@ -1,5 +1,5 @@
 name: games_backlog
-description: "A new Flutter project."
+description: "NextQuest, sua biblioteca pessoal de jogos."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -30,7 +30,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  material_ui: ^1.1.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -40,6 +39,8 @@ dependencies:
   dio: ^5.11.1
   shared_preferences: ^2.5.6
   url_launcher: ^6.3.3
+  crypto: ^3.0.8
+  web: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -63,10 +64,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/brand/nextquest.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

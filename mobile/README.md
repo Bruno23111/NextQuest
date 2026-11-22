@@ -1,4 +1,4 @@
-# GamesBacklog Flutter
+# NextQuest Flutter
 
 Handoff para o Gemini. Desenvolva o aplicativo nesta pasta para Android, com interface em português. Use os [critérios de aceite](../specs/), o [OpenAPI](../specs/openapi-v1.json) e os [exemplos JSON](../specs/examples/) como referência do comportamento.
 

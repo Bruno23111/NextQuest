@@ -1,7 +1,5 @@
 using FluentValidation;
 using GamesBacklog.Application;
-using GamesBacklog.Infrastructure.Identity;
-using GamesBacklog.Infrastructure.Steam;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,11 +14,18 @@ internal sealed class ApiErrors : IExceptionHandler
             ValidationException error => Results.ValidationProblem(error.Errors.GroupBy(x => x.PropertyName)
                 .ToDictionary(group => group.Key, group => group.Select(x => x.ErrorMessage).ToArray())),
             GameNotFoundException => Results.Problem(statusCode: 404, title: "Jogo não encontrado."),
+            ProfileNotFoundException => Results.Problem(statusCode: 404, title: "Perfil não encontrado."),
             DuplicateImportException => Results.Problem(statusCode: 409, title: "Jogo já importado para esta plataforma."),
             CatalogUnavailableException => Results.Problem(statusCode: 503, title: "Catálogo indisponível. Tente novamente."),
             EmailUnavailableException => Results.Problem(statusCode: 503,
                 title: "Envio de e-mail indisponível. Tente reenviar a mensagem."),
             SteamUnavailableException => Results.Problem(statusCode: 503, title: "Login Steam indisponível. Tente novamente."),
+            SteamAccountNotLinkedException => Results.Problem(statusCode: 409,
+                title: "Vincule uma conta Steam antes de consultar sua biblioteca."),
+            SteamGameDataPrivateException => Results.Problem(statusCode: 403,
+                title: "A Steam não disponibilizou estes dados. Verifique a privacidade do perfil e do jogo."),
+            SteamGameDataUnavailableException => Results.Problem(statusCode: 503,
+                title: "Dados da Steam indisponíveis. Tente novamente."),
             BadHttpRequestException error => Results.Problem(statusCode: error.StatusCode, title: "Requisição inválida."),
             _ => null
         };
