@@ -58,15 +58,9 @@ public static class ApiHost
 
         services.AddCors(options => options.AddPolicy("steam-web", policy =>
         {
-            if (builder.Environment.IsDevelopment())
-            {
-                policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-            }
-            else
-            {
-                var url = config.GetValue<Uri>("Steam:WebReturnUrl")!;
+            var url = config.GetValue<Uri>("Steam:WebReturnUrl");
+            if (url is not null)
                 policy.WithOrigins(url.GetLeftPart(UriPartial.Authority)).AllowAnyHeader().AllowAnyMethod();
-            }
         }));
 
         services.AddAuthorization();
