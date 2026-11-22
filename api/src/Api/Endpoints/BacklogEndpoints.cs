@@ -66,20 +66,20 @@ internal static class BacklogEndpoints
 
         var query = new BacklogQuery(q, filter, page);
         await rules.ValidateAndThrowAsync(query, ct);
-        var result = await service.List(Owner(user), query, ct);
+        var result = await service.List(user.GetOwnerId(), query, ct);
         return TypedResults.Ok(new PagedResult<BacklogGame>(result.Items.Select(x => Map(x, mapping)).ToArray(),
             result.Page, result.PageSize, result.HasMore));
     }
 
     private static async Task<Ok<BacklogGame>> Find(Guid id, ClaimsPrincipal user, BacklogService service,
         TypeAdapterConfig mapping, CancellationToken ct) =>
-        TypedResults.Ok(Map(await service.Find(Owner(user), id, ct), mapping));
+        TypedResults.Ok(Map(await service.Find(user.GetOwnerId(), id, ct), mapping));
 
     private static async Task<CreatedAtRoute<BacklogGame>> Create(CreateGame request, ClaimsPrincipal user,
         BacklogService service, TypeAdapterConfig mapping, IValidator<CreateGame> rules, CancellationToken ct)
     {
         await rules.ValidateAndThrowAsync(request, ct);
-        var game = Map(await service.Create(Owner(user), request, ct), mapping);
+        var game = Map(await service.Create(user.GetOwnerId(), request, ct), mapping);
         return TypedResults.CreatedAtRoute(game, "FindBacklog", new { game.Id });
     }
 
@@ -87,13 +87,13 @@ internal static class BacklogEndpoints
         BacklogService service, TypeAdapterConfig mapping, IValidator<UpdateGame> rules, CancellationToken ct)
     {
         await rules.ValidateAndThrowAsync(request, ct);
-        return TypedResults.Ok(Map(await service.Update(Owner(user), id, request, ct), mapping));
+        return TypedResults.Ok(Map(await service.Update(user.GetOwnerId(), id, request, ct), mapping));
     }
 
     private static async Task<NoContent> Delete(Guid id, ClaimsPrincipal user, BacklogService service,
         CancellationToken ct)
     {
-        await service.Delete(Owner(user), id, ct);
+        await service.Delete(user.GetOwnerId(), id, ct);
         return TypedResults.NoContent();
     }
 
@@ -101,10 +101,9 @@ internal static class BacklogEndpoints
         BacklogService service, TypeAdapterConfig mapping, IValidator<ImportGame> rules, CancellationToken ct)
     {
         await rules.ValidateAndThrowAsync(request, ct);
-        var game = Map(await service.Import(Owner(user), request, ct), mapping);
+        var game = Map(await service.Import(user.GetOwnerId(), request, ct), mapping);
         return TypedResults.CreatedAtRoute(game, "FindBacklog", new { game.Id });
     }
 
-    private static Guid Owner(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
     private static BacklogGame Map(BacklogEntry game, TypeAdapterConfig mapping) => game.Adapt<BacklogGame>(mapping);
 }

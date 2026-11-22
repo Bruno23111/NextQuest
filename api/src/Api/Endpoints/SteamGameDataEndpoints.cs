@@ -18,12 +18,9 @@ internal static class SteamGameDataEndpoints
     }
 
     private static async Task<Ok<SteamLibrary>> Library(ClaimsPrincipal user, ISteamGameDataService steam,
-        CancellationToken ct) => TypedResults.Ok(await steam.GetLibrary(Owner(user), ct));
+        CancellationToken ct) => TypedResults.Ok(await steam.GetLibrary(user.GetOwnerId(), ct));
 
     private static async Task<Ok<SteamGameAchievements>> Achievements(int appId, ClaimsPrincipal user,
         ISteamGameDataService steam, CancellationToken ct) =>
-        TypedResults.Ok(await steam.GetAchievements(Owner(user), appId, ct));
-
-    private static Guid Owner(ClaimsPrincipal user) =>
-        Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        TypedResults.Ok(await steam.GetAchievements(user.GetOwnerId(), appId, ct));
 }

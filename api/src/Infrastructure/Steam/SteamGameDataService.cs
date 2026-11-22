@@ -57,22 +57,56 @@ public sealed class SteamGameDataService(
         var stats = result.PlayerStats ?? throw new SteamGameDataPrivateException();
         if (!stats.Success) throw new SteamGameDataPrivateException();
 
-        var achievements = (stats.Achievements ?? []).Where(item => !string.IsNullOrWhiteSpace(item.ApiName))
-            .Select(item => new SteamAchievement(
+        var playerAchievements = (stats.Achievements ?? [])
+            .Where(item => !string.IsNullOrWhiteSpace(item.ApiName)).ToArray();
+        var definitions = playerAchievements.Length == 0
+            ? new Dictionary<string, AchievementDefinition>(StringComparer.Ordinal)
+            : await GetAchievementDefinitions(appId, ct);
+
+        var achievements = playerAchievements.Select(item =>
+        {
+            var definition = definitions.GetValueOrDefault(item.ApiName!);
+            var name = NonBlank(definition?.DisplayName) ?? NonBlank(item.Name) ?? item.ApiName!;
+            var description = NonBlank(item.Description) ??
+                (item.Achieved == 1 || definition?.Hidden == 0 ? NonBlank(definition?.Description) : null);
+
+            return new SteamAchievement(
                 Limit(item.ApiName!, 200),
-                Limit(string.IsNullOrWhiteSpace(item.Name) ? item.ApiName! : item.Name!, 200),
-                string.IsNullOrWhiteSpace(item.Description) ? null : Limit(item.Description!, 1000),
+                Limit(name, 200),
+                description is null ? null : Limit(description, 1000),
                 item.Achieved == 1,
-                item.UnlockTime is > 0
+                item.UnlockTime is > 0 and <= 253402300799
                     ? DateTimeOffset.FromUnixTimeSeconds(item.UnlockTime.Value)
                     : null,
-                HttpsUrl(item.Icon),
-                HttpsUrl(item.IconGray)))
-            .ToArray();
+                HttpsUrl(definition?.Icon) ?? HttpsUrl(item.Icon),
+                HttpsUrl(definition?.IconGray) ?? HttpsUrl(item.IconGray));
+        }).ToArray();
 
         return new(appId, Limit(stats.GameName ?? "Jogo Steam", 250),
             achievements.Count(item => item.Achieved), achievements.Length, achievements);
     }
+
+    private async Task<Dictionary<string, AchievementDefinition>> GetAchievementDefinitions(
+        int appId, CancellationToken ct)
+    {
+        try
+        {
+            var schema = await Read<GameSchemaEnvelope>(
+                "ISteamUserStats/GetSchemaForGame/v2/",
+                $"appid={appId.ToString(CultureInfo.InvariantCulture)}&l=brazilian", ct);
+
+            return (schema.Game?.AvailableGameStats?.Achievements ?? [])
+                .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+                .DistinctBy(item => item.Name, StringComparer.Ordinal)
+                .ToDictionary(item => item.Name!, StringComparer.Ordinal);
+        }
+        catch (Exception error) when (error is SteamGameDataUnavailableException or SteamGameDataPrivateException)
+        {
+            return new(StringComparer.Ordinal);
+        }
+    }
+
+    private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     private async Task<string> GetSteamId(Guid ownerId, CancellationToken ct)
     {
@@ -141,4 +175,10 @@ public sealed class SteamGameDataService(
         [property: JsonPropertyName("unlocktime")] long? UnlockTime,
         [property: JsonPropertyName("icon")] string? Icon,
         [property: JsonPropertyName("icongray")] string? IconGray);
+
+    private sealed record GameSchemaEnvelope(GameSchema? Game);
+    private sealed record GameSchema(GameStats? AvailableGameStats);
+    private sealed record GameStats(AchievementDefinition[]? Achievements);
+    private sealed record AchievementDefinition(
+        string? Name, string? DisplayName, string? Description, int? Hidden, string? Icon, string? IconGray);
 }

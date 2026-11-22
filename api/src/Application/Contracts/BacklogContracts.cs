@@ -12,8 +12,6 @@ public sealed record BacklogQuery(string? Q, GameStatus? Status, int Page = 1);
 
 public sealed record CatalogQuery(string Q, int Page = 1);
 
-public sealed record PopularCatalogQuery(int Page = 1);
-
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, bool HasMore);
 
 public sealed record CatalogPlatform(int Id, string Name);

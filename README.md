@@ -254,7 +254,7 @@ docker run --rm --env-file staging.env gamesbacklog-api --migrate
 
 ## Login com Steam
 
-A integração usa Steam OpenID 2.0 para entrar ou vincular uma conta existente. A configuração usa a origem da API em `Auth__PublicOrigin` e a rota do app em `Steam__WebReturnUrl`. O ambiente de desenvolvimento aponta para `http://localhost:5080` e `http://localhost:3000/#/auth/steam/callback`. Configure URLs HTTPS no ambiente de homologação. Em proxy reverso, preserve o cabeçalho Host e encaminhe o protocolo original conforme a configuração de proxy da API.
+A integração usa Steam OpenID 2.0 para entrar ou vincular uma conta existente. A configuração usa a origem da API em `Auth__PublicOrigin` e a rota do app em `Steam__WebReturnUrl`. O ambiente de desenvolvimento aponta para `http://127.0.0.1:5080` e `http://localhost:4200/auth/steam/callback` (Angular). Configure URLs HTTPS no ambiente de homologação. Em proxy reverso, preserve o cabeçalho Host e encaminhe o protocolo original conforme a configuração de proxy da API.
 
 Aplique as migrations antes de usar os endpoints. A origem da URL Flutter configurada é liberada para requisições do navegador. A autenticação guarda o SteamID verificado e usa a sessão bearer do GamesBacklog. Quem já tem biblioteca vinculada a um e-mail deve entrar por e-mail e então vincular a Steam para preservar a mesma conta.
 

@@ -18,7 +18,7 @@ internal sealed class SteamAuthEndpoints(ISteamAuthService steamAuth, IOptions<S
             endpoints.Start(request, null, ct)).WithName("StartSteamLogin")
             .ProducesValidationProblem().ProducesProblem(503);
         group.MapPost("/link/start", (StartSteamRequest request, ClaimsPrincipal user, SteamAuthEndpoints endpoints,
-            CancellationToken ct) => endpoints.Start(request, Owner(user), ct))
+            CancellationToken ct) => endpoints.Start(request, user.GetOwnerId(), ct))
             .WithName("StartSteamLink").RequireAuthorization()
             .ProducesValidationProblem().ProducesProblem(401).ProducesProblem(503);
         group.MapGet("/callback", (string state, HttpContext context, SteamAuthEndpoints endpoints, CancellationToken ct) =>
@@ -28,7 +28,7 @@ internal sealed class SteamAuthEndpoints(ISteamAuthService steamAuth, IOptions<S
             endpoints.Login(request, ct)).WithName("RedeemSteamLogin").Produces<SessionResponse>()
             .ProducesValidationProblem().ProducesProblem(401).ProducesProblem(409).ProducesProblem(503);
         group.MapPost("/link", (RedeemSteamRequest request, ClaimsPrincipal user, SteamAuthEndpoints endpoints,
-            CancellationToken ct) => endpoints.Link(request, Owner(user), ct))
+            CancellationToken ct) => endpoints.Link(request, user.GetOwnerId(), ct))
             .WithName("LinkSteamAccount").RequireAuthorization()
             .ProducesValidationProblem().ProducesProblem(401).ProducesProblem(409).ProducesProblem(503);
     }
@@ -101,6 +101,4 @@ internal sealed class SteamAuthEndpoints(ISteamAuthService steamAuth, IOptions<S
         };
         return TypedResults.Redirect(uri.Uri.AbsoluteUri);
     }
-
-    private static Guid Owner(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }

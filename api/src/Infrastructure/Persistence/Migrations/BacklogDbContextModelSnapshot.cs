@@ -81,8 +81,7 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("AvatarUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Bio")
                         .HasMaxLength(300)
@@ -104,8 +103,7 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("HeaderUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");

@@ -1,0 +1,54 @@
+:root {
+  /* Paleta NextQuest (alinhada ao AppColors do Flutter) */
+  --bg-canvas: #101113;
+  --bg-rail: #17181a;
+  --bg-surface: #1d1f21;
+  --bg-surface-hover: #2c2f32;
+  --bg-surface-elevated: #25282b;
+  --bg-glass: rgba(23, 24, 26, 0.86);
+  --bg-input: #17181a;
+
+  /* Bordas */
+  --border-subtle: #343739;
+  --border-strong: #4a4e52;
+  --border-glow: rgba(181, 227, 76, 0.55);
+
+  /* Tipografia */
+  --text-primary: #f5f5f0;
+  --text-secondary: #c2c4c5;
+  --text-muted: #a6aaab;
+
+  /* Acentos da marca & Teal */
+  --accent-primary: #b5e34c;
+  --accent-surface: #30391f;
+  --accent-cyan: #8bdaeb;
+  --teal-primary: #0b697a;
+  --teal-light: #67c9ce;
+  --teal-dark: #173941;
+  --accent-gradient: linear-gradient(135deg, #b5e34c 0%, #8bdaeb 100%);
+  --accent-soft: #30391f;
+
+  /* Status */
+  --status-planned: #cbc0ff;
+  --status-playing: #8bdaeb;
+  --status-completed: #81d5ab;
+  --status-dropped: #f4a4af;
+
+  /* Semânticas */
+  --color-error: #f4a4af;
+  --color-success: #81d5ab;
+  --color-warning: #f9d699;
+
+  /* Raios & Sombras */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.42);
+  --shadow-glow: 0 0 24px rgba(181, 227, 76, 0.18);
+
+  /* Layout */
+  --rail-width: 76px;
+  --rail-width-expanded: 228px;
+  --topbar-height: 76px;
+}

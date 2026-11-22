@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using GamesBacklog.Application;
 using Microsoft.Extensions.Options;
 
@@ -32,9 +31,7 @@ public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options
             $"games?ordering=-added&page={pageNumber.ToString(CultureInfo.InvariantCulture)}&page_size={pageSize}", ct)
             ?? throw new CatalogUnavailableException();
 
-        var games = (page.Results ?? throw new CatalogUnavailableException()).OfType<RawgGame>()
-            .Select(ToGame).OfType<CatalogGame>().ToArray();
-        return new(games, pageNumber, pageSize,
+        return new(MapGames(page), pageNumber, pageSize,
             pageNumber < MaxPopularPages && !string.IsNullOrEmpty(page.Next));
     }
 
@@ -46,9 +43,7 @@ public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options
             $"games?search={search}&page={pageNumber}&page_size={PageSize}", ct)
             ?? throw new CatalogUnavailableException();
 
-        var games = (page.Results ?? throw new CatalogUnavailableException()).OfType<RawgGame>()
-            .Select(ToGame).OfType<CatalogGame>().ToArray();
-        return new(games, query.Page, PageSize, !string.IsNullOrEmpty(page.Next));
+        return new(MapGames(page), query.Page, PageSize, !string.IsNullOrEmpty(page.Next));
     }
 
     public async Task<CatalogGame?> Find(int rawgId, CancellationToken ct)
@@ -81,6 +76,13 @@ public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options
             throw new CatalogUnavailableException();
         }
     }
+
+    private static CatalogGame[] MapGames(RawgPage page) =>
+        (page.Results ?? throw new CatalogUnavailableException())
+            .OfType<RawgGame>()
+            .Select(ToGame)
+            .OfType<CatalogGame>()
+            .ToArray();
 
     private static CatalogGame? ToGame(RawgGame game)
     {
