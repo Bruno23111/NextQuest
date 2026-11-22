@@ -1,3 +1,6 @@
+import { catchError, of, startWith, switchMap } from 'rxjs';
+import { PlayPlanApi } from '../services/play-plan.api';
+import { PlayQueueComponent } from '../components/play-queue.component';
 import { DatePipe } from '@angular/common';
 import {
   Component,
@@ -8,7 +11,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { parseApiError } from '../../../core/errors/problem-details';
@@ -45,6 +48,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
   selector: 'app-backlog-list-page',
   standalone: true,
   imports: [
+    PlayQueueComponent,
     DatePipe,
     FormsModule,
     RouterLink,
@@ -57,11 +61,9 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
     <div class="nq-page">
       @if (featuredGame(); as spotlight) {
         <section class="nq-hero-banner">
-          @if (spotlight.coverUrl; as cover) {
-            <div class="nq-hero-banner__media" aria-hidden="true">
-              <img [src]="cover" alt="" />
-            </div>
-          }
+          <div class="nq-hero-banner__media" aria-hidden="true">
+            <img src="jogando-coelho.webp" alt="" />
+          </div>
 
           <div class="nq-hero-banner__content">
             <div class="nq-hero-banner__top">
@@ -76,10 +78,17 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
                 </div>
 
                 <h1>{{ spotlight.title }}</h1>
-                <p>
-                  Na sua biblioteca para {{ spotlight.platform }} • acompanhe seu progresso ou
-                  atualize o status quando quiser.
-                </p>
+                @if (spotlight.status === 'playing') {
+                  @if (featuredJournal(); as journal) {
+                    @if (journal.lastCheckpoint) {
+                      <p class="resume-note"><strong>Onde parei:</strong> {{ journal.lastCheckpoint }}</p>
+                    }
+                    @if (journal.nextObjective) {
+                      <p class="resume-note"><strong>Próximo objetivo:</strong> {{ journal.nextObjective }}</p>
+                    }
+                  }
+                  <a [routerLink]="['/backlog', spotlight.id]" fragment="diario">Abrir diário</a>
+                }
               </div>
 
               <div class="nq-hero-banner__actions">
@@ -110,6 +119,9 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
         </section>
       } @else if (!loading()) {
         <section class="nq-hero-banner">
+          <div class="nq-hero-banner__media" aria-hidden="true">
+            <img src="jogando-coelho.webp" alt="" />
+          </div>
           <div class="nq-hero-banner__content">
             <div class="nq-hero-banner__top">Sua biblioteca pessoal</div>
             <div class="nq-hero-banner__bottom">
@@ -294,6 +306,8 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
           </div>
         </article>
       </section>
+
+      <app-play-queue />
 
       <section id="biblioteca-completa" class="library-section">
         <div class="toolbar">
@@ -489,6 +503,14 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
     </div>
   `,
   styles: `
+    .resume-note {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+
     .bento-stat {
       display: flex;
       flex-direction: column;
@@ -601,6 +623,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
 })
 export class BacklogListPageComponent implements OnInit {
   private readonly api = inject(BacklogApi);
+  private readonly playPlan = inject(PlayPlanApi);
   private readonly steamApi = inject(SteamApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -625,6 +648,17 @@ export class BacklogListPageComponent implements OnInit {
     if (list.length === 0) return null;
     return list.find((g) => g.status === 'playing') ?? list[0];
   });
+
+  private readonly playingId = computed(() => {
+    const game = this.featuredGame();
+    return game?.status === 'playing' ? game.id : null;
+  });
+
+  protected readonly featuredJournal = toSignal(toObservable(this.playingId).pipe(
+    switchMap(id => id
+      ? this.playPlan.journal(id).pipe(startWith(null), catchError(() => of(null)))
+      : of(null)),
+  ), { initialValue: null });
 
   protected readonly queueGames = computed(() => {
     const list = [...this.games()];

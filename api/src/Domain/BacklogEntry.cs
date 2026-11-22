@@ -15,6 +15,9 @@ public sealed class BacklogEntry
     public int? PlatformId { get; private set; }
     public string? CoverUrl { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+    public string? LastCheckpoint { get; private set; }
+    public string? NextObjective { get; private set; }
+    public string? Notes { get; private set; }
 
     public static BacklogEntry Create(Guid ownerId, string title, string platform, DateTimeOffset now) =>
         new()

@@ -1,5 +1,10 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { switchMap, EMPTY, catchError } from 'rxjs';
+import { PlayPlanApi, QueuedGame } from '../services/play-plan.api';
+import { GameJournalComponent } from '../components/game-journal.component';
+import { PlayQueueComponent } from '../components/play-queue.component';
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, Injector, OnInit, afterNextRender, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { parseApiError } from '../../../core/errors/problem-details';
@@ -27,6 +32,8 @@ const STATUS_CHOICES: StatusChoice[] = [
   selector: 'app-backlog-detail-page',
   standalone: true,
   imports: [
+    PlayQueueComponent,
+    GameJournalComponent,
     DatePipe,
     FormsModule,
     RouterLink,
@@ -80,6 +87,18 @@ const STATUS_CHOICES: StatusChoice[] = [
             </div>
           </div>
         </section>
+        <app-play-queue [candidate]="item" />
+        <app-game-journal id="diario" [gameId]="item.id" />
+        @if (nextGame(); as next) {
+          <section class="nq-card" id="proximo-da-fila" aria-labelledby="proximo-da-fila-titulo">
+            <h2 id="proximo-da-fila-titulo">Próximo da fila</h2>
+            <p>{{ next.title }}</p>
+            <button type="button" class="nq-btn nq-btn--primary" [disabled]="saving() || deleting()"
+              (click)="startNext(next)">Começar a jogar</button>
+            <button type="button" class="nq-btn nq-btn--ghost" [disabled]="saving()"
+              (click)="nextGame.set(null)">Agora não</button>
+          </section>
+        }
 
         <div class="detail-columns">
           <form class="nq-card edit-form" (ngSubmit)="save()">
@@ -323,6 +342,11 @@ export class BacklogDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(BacklogApi);
+  private readonly playPlan = inject(PlayPlanApi);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+
+  protected readonly nextGame = signal<QueuedGame | null>(null);
 
   protected readonly statusChoices = STATUS_CHOICES;
   protected readonly game = signal<BacklogGame | null>(null);
@@ -340,31 +364,46 @@ export class BacklogDetailPageComponent implements OnInit {
   private gameId = '';
 
   ngOnInit(): void {
-    this.gameId = this.route.snapshot.paramMap.get('id') ?? '';
-    this.api.find(this.gameId).subscribe({
-      next: (item) => {
-        this.game.set(item);
-        this.title = item.title;
-        this.platform = item.platform;
-        this.status = item.status;
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.errorMessage.set(parseApiError(err).message);
-      },
+    this.route.paramMap.pipe(
+      switchMap(params => {
+        this.gameId = params.get('id') ?? '';
+        this.nextGame.set(null);
+        this.game.set(null);
+        this.loading.set(true);
+        this.errorMessage.set(null);
+        this.successMessage.set(null);
+        return this.api.find(this.gameId).pipe(catchError(error => {
+          this.loading.set(false);
+          this.errorMessage.set(parseApiError(error).message);
+          return EMPTY;
+        }));
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(item => {
+      this.game.set(item);
+      this.title = item.title;
+      this.platform = item.platform;
+      this.status = item.status;
+      this.loading.set(false);
+      if (this.route.snapshot.fragment === 'diario') {
+        afterNextRender(() => document.getElementById('diario')?.scrollIntoView(), { injector: this.injector });
+      }
     });
   }
 
   protected save(): void {
+    const current = this.game();
+    if (!current || this.saving()) return;
+
     this.saving.set(true);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.nextGame.set(null);
 
     this.api
       .update(this.gameId, {
-        title: this.title.trim(),
-        platform: this.platform.trim(),
+        title: current.rawgId ? undefined : this.title.trim(),
+        platform: current.rawgId ? undefined : this.platform.trim(),
         status: this.status,
       })
       .subscribe({
@@ -372,12 +411,52 @@ export class BacklogDetailPageComponent implements OnInit {
           this.game.set(updated);
           this.saving.set(false);
           this.successMessage.set('Alterações salvas com sucesso.');
+          if (current.status !== 'completed' && updated.status === 'completed') {
+            this.offerNext(updated.id);
+          }
         },
         error: (err) => {
           this.saving.set(false);
           this.errorMessage.set(parseApiError(err).message);
         },
       });
+  }
+
+  private offerNext(completedId: string): void {
+    this.playPlan.queue().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: queue => {
+        if (this.gameId === completedId && this.game()?.status === 'completed') {
+          const next = queue.find(game => game.id !== completedId);
+          this.nextGame.set(next ?? null);
+          if (next) {
+            afterNextRender(() => document.getElementById('proximo-da-fila')?.scrollIntoView(), {
+              injector: this.injector,
+            });
+          }
+        }
+      },
+      error: () => {
+        if (this.gameId === completedId)
+          this.errorMessage.set('Jogo concluído. Não foi possível consultar o próximo da fila.');
+      },
+    });
+  }
+
+  protected startNext(next: QueuedGame): void {
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.errorMessage.set(null);
+    this.api.update(next.id, { status: 'playing' }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.nextGame.set(null);
+        void this.router.navigate(['/backlog', next.id]);
+      },
+      error: error => {
+        this.saving.set(false);
+        this.errorMessage.set(parseApiError(error).message);
+      },
+    });
   }
 
   protected deleteGame(): void {

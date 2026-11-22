@@ -12,4 +12,6 @@ Na aba Conta, a pessoa configura o nome de exibição, uma descrição, a imagem
 
 ## Upload no Angular
 
-A rota autenticada `PUT /api/v1/profile/images` recebe nome, descrição e arquivos opcionais de avatar e capa em `multipart/form-data`. Aceita PNG, JPEG e WebP de até 2 MB por arquivo. Campos de imagem omitidos preservam as imagens existentes. Os arquivos enviados são armazenados no PostgreSQL.
+No perfil Angular, o lápis sobre o avatar e a capa abre o seletor de arquivos. A prévia aparece na própria imagem e a alteração é confirmada ao salvar o perfil.
+
+A rota autenticada `PUT /api/v1/profile/images` recebe nome, descrição e arquivos opcionais de avatar e capa em `multipart/form-data`. Aceita PNG, JPEG e WebP de até 8 MB por arquivo. Campos de imagem omitidos preservam as imagens existentes. Os arquivos enviados são armazenados no PostgreSQL.

@@ -29,7 +29,7 @@ internal static class UserProfileEndpoints
         return TypedResults.Ok(await service.Update(user.GetOwnerId(), request, ct));
     }
 
-    [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequestSizeLimit(17 * 1024 * 1024)]
     private static async Task<Results<Ok<UserProfile>, StatusCodeHttpResult>> UpdateWithImages(
         HttpRequest request, ClaimsPrincipal user, UserProfileService service,
         IValidator<UpdateUserProfile> validator, CancellationToken ct)

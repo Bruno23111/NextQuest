@@ -15,7 +15,7 @@ Construir a aplicação web oficial do **NextQuest** em **Angular** (em `web/`),
 4. **Biblioteca & Conquistas Steam (Spec 006)**
    - Exibição dos jogos vinculados à Steam, tempo jogado e progresso de conquistas.
 5. **Perfil do Usuário (Spec 007)**
-   - Visualização e edição com prévia ao vivo de nome de exibição (até 60 caracteres), descrição (até 300 caracteres), avatar e capa (arquivos PNG, JPEG ou WebP de até 2 MB cada).
+   - Visualização e edição com prévia ao vivo de nome de exibição (até 60 caracteres), descrição (até 300 caracteres), avatar e capa (arquivos PNG, JPEG ou WebP de até 8 MB cada).
 
 ## Referência visual e identidade
 

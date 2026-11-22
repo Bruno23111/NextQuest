@@ -22,6 +22,7 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("Configure ConnectionStrings:Backlog.")));
 
         services.AddScoped<IBacklogStore, BacklogStore>();
+        services.AddScoped<IPlayPlanStore, PlayPlanStore>();
         services.AddScoped<IUserProfileStore, UserProfileStore>();
 
         services.AddOptions<RawgOptions>().BindConfiguration("Rawg");

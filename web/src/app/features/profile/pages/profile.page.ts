@@ -19,21 +19,28 @@ import { ProfileApi } from '../services/profile.api';
         <div class="nq-card">Carregando perfil...</div>
       } @else {
         <section class="profile-preview">
-          <div
-            class="profile-banner"
-            [style.background-image]="previewUrl('header') ? 'url(' + previewUrl('header') + ')' : null"
-          >
-            <div class="profile-banner__scrim"></div>
-          </div>
+          <input #headerPicker hidden type="file" accept="image/png,image/jpeg,image/webp"
+            (change)="selectImage($event, 'header')" />
+          <input #avatarPicker hidden type="file" accept="image/png,image/jpeg,image/webp"
+            (change)="selectImage($event, 'avatar')" />
+
+          <button type="button" class="profile-banner image-picker" aria-label="Alterar imagem de capa"
+            [disabled]="saving()" (click)="headerPicker.click()"
+            [style.background-image]="previewUrl('header') ? 'url(' + previewUrl('header') + ')' : null">
+            <span class="profile-banner__scrim"></span>
+            <span class="ms-icon edit-image" aria-hidden="true">edit</span>
+          </button>
 
           <div class="profile-identity">
-            <div class="avatar-ring">
+            <button type="button" class="avatar-ring image-picker" aria-label="Alterar imagem de perfil"
+              [disabled]="saving()" (click)="avatarPicker.click()">
               @if (previewUrl('avatar')) {
-                <img [src]="previewUrl('avatar')" [alt]="displayName || 'Avatar'" />
+                <img [src]="previewUrl('avatar')" alt="" />
               } @else {
                 <span>{{ (displayName || 'NQ').slice(0, 2).toUpperCase() }}</span>
               }
-            </div>
+              <span class="ms-icon edit-image" aria-hidden="true">edit</span>
+            </button>
 
             <div class="identity-text">
               <h1>{{ displayName || 'Jogador NextQuest' }}</h1>
@@ -67,35 +74,6 @@ import { ProfileApi } from '../services/profile.api';
               />
             </div>
 
-            <div class="nq-field">
-              <label for="prof-avatar">Imagem de perfil</label>
-              <label class="file-drop" for="prof-avatar">
-                <span class="ms-icon" aria-hidden="true">photo_camera</span>
-                <span>{{ selectedFileName('avatar') || 'Escolher avatar (PNG, JPEG, WebP)' }}</span>
-                <input
-                  id="prof-avatar"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  [disabled]="saving()"
-                  (change)="selectImage($event, 'avatar')"
-                />
-              </label>
-            </div>
-
-            <div class="nq-field">
-              <label for="prof-header">Imagem de capa</label>
-              <label class="file-drop" for="prof-header">
-                <span class="ms-icon" aria-hidden="true">wallpaper</span>
-                <span>{{ selectedFileName('header') || 'Escolher capa (PNG, JPEG, WebP)' }}</span>
-                <input
-                  id="prof-header"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  [disabled]="saving()"
-                  (change)="selectImage($event, 'header')"
-                />
-              </label>
-            </div>
           </div>
 
           <div class="nq-field">
@@ -110,7 +88,7 @@ import { ProfileApi } from '../services/profile.api';
             ></textarea>
           </div>
 
-          <small class="upload-hint">PNG, JPEG ou WebP, até 2 MB por imagem.</small>
+          <small class="upload-hint">PNG, JPEG ou WebP, até 8 MB por imagem.</small>
           <div>
             <button type="submit" class="nq-btn nq-btn--primary" [disabled]="saving()">
               <span class="ms-icon" aria-hidden="true">save</span>
@@ -132,6 +110,10 @@ import { ProfileApi } from '../services/profile.api';
 
     .profile-banner {
       position: relative;
+      display: block;
+      width: 100%;
+      border: 0;
+      padding: 0;
       height: 196px;
       background:
         radial-gradient(circle at 25% 20%, rgba(11, 105, 122, 0.45), transparent 56%),
@@ -158,6 +140,7 @@ import { ProfileApi } from '../services/profile.api';
     }
 
     .avatar-ring {
+      padding: 0;
       width: 96px;
       height: 96px;
       border-radius: 22px;
@@ -210,39 +193,25 @@ import { ProfileApi } from '../services/profile.api';
       gap: 14px;
     }
 
-    .file-drop {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 13px;
-      border-radius: var(--radius-md);
-      border: 1px dashed var(--border-strong);
-      background: var(--bg-input);
-      color: var(--text-secondary);
-      font-size: 0.86rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: border-color 0.15s ease, color 0.15s ease;
+    .image-picker { position: relative; cursor: pointer; }
+    .image-picker:disabled { cursor: wait; }
+    .image-picker:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -4px; }
 
-      &:hover {
-        border-color: var(--accent-primary);
-        color: var(--text-primary);
-      }
-
-      .ms-icon {
-        color: var(--accent-primary);
-      }
-
-      span:last-of-type {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      input[type='file'] {
-        display: none;
-      }
+    .edit-image {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      color: white;
+      background: rgba(16, 17, 19, 0.85);
+      font-size: 18px;
     }
+
+    .profile-banner .edit-image { top: 12px; right: 12px; bottom: auto; }
 
     .upload-hint {
       color: var(--text-muted);
@@ -273,8 +242,8 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
     input.value = '';
     if (!file) return;
 
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
-      this.errorMessage.set('Selecione uma imagem PNG, JPEG ou WebP de até 2 MB.');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
+      this.errorMessage.set('Selecione uma imagem PNG, JPEG ou WebP de até 8 MB.');
       return;
     }
 
@@ -283,9 +252,6 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
     this.selectedImages[kind] = { file, url: URL.createObjectURL(file) };
   }
 
-  protected selectedFileName(kind: 'avatar' | 'header'): string | null {
-    return this.selectedImages[kind]?.file.name ?? null;
-  }
 
   protected previewUrl(kind: 'avatar' | 'header'): string {
     return this.selectedImages[kind]?.url ?? (kind === 'avatar' ? this.avatarUrl : this.headerUrl);

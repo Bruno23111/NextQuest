@@ -29,6 +29,7 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
             user.HasIndex(x => x.NormalizedEmail).IsUnique().HasDatabaseName(EmailIndex);
             user.HasIndex(x => x.NormalizedUserName).IsUnique().HasDatabaseName(UserNameIndex);
             user.Property(x => x.SteamId).HasMaxLength(17);
+            user.Property(x => x.PlayQueue).HasDefaultValue(Array.Empty<Guid>());
             user.HasIndex(x => x.SteamId).IsUnique().HasDatabaseName(SteamUserIndex);
             user.Property(x => x.DisplayName).HasMaxLength(60);
             user.Property(x => x.Bio).HasMaxLength(300);
@@ -51,6 +52,9 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
         model.Entity<BacklogEntry>(entry =>
         {
             entry.Property(x => x.Title).HasMaxLength(250).IsRequired();
+            entry.Property(x => x.LastCheckpoint).HasMaxLength(500);
+            entry.Property(x => x.NextObjective).HasMaxLength(500);
+            entry.Property(x => x.Notes).HasMaxLength(2000);
             entry.Property(x => x.Platform).HasMaxLength(100).IsRequired();
             entry.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
             entry.HasOne<BacklogUser>().WithMany().HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Cascade);

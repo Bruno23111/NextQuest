@@ -4,14 +4,14 @@ namespace GamesBacklog.Api.Endpoints;
 
 internal static class ProfileImageUpload
 {
-    private const int MaxBytes = 2 * 1024 * 1024;
+    private const int MaxBytes = 8 * 1024 * 1024;
 
     internal static async Task<string?> Read(IFormFile? file, string field, CancellationToken ct)
     {
         if (file is null) return null;
 
         if (file.Length is < 12 or > MaxBytes)
-            throw new ValidationException([new(field, "Envie uma imagem de até 2 MB.")]);
+            throw new ValidationException([new(field, "Envie uma imagem de até 8 MB.")]);
 
         var bytes = new byte[(int)file.Length];
         await using var stream = file.OpenReadStream();

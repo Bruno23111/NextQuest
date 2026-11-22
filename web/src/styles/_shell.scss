@@ -13,7 +13,15 @@
 
   .rail {
     align-items: stretch;
-    padding: 20px 14px;
+    padding: 22px 14px;
+  }
+
+  .rail__brand-row {
+    justify-content: space-between;
+  }
+
+  .rail__toggle {
+    position: static;
   }
 
   .rail__item {
@@ -39,8 +47,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 20px 12px;
+  gap: 18px;
+  padding: 22px 14px;
   background: var(--bg-rail);
   border-right: 1px solid var(--border-subtle);
   z-index: 35;
@@ -49,6 +57,7 @@
 .rail__brand-row {
   position: relative;
   width: 100%;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -88,9 +97,15 @@
 
 .rail__toggle {
   position: absolute;
-  right: -24px;
-  top: 4px;
+  width: 26px;
+  height: 26px;
+  right: -27px;
+  top: 44px;
   background: var(--bg-surface-elevated);
+
+  .ms-icon {
+    font-size: 16px;
+  }
 }
 
 .rail__label {
@@ -180,7 +195,7 @@
 
 .topbar {
   min-height: var(--topbar-height);
-  padding: 14px 28px 6px;
+  padding: 18px 32px 10px 36px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -284,7 +299,7 @@
 }
 
 .content {
-  padding: 16px 28px 32px;
+  padding: 20px 32px 36px 36px;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;

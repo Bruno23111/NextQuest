@@ -15,6 +15,7 @@ internal static class BacklogEndpoints
     internal static void MapBacklog(this RouteGroupBuilder api)
     {
         var backlog = api.MapGroup("/backlog").WithTags("Backlog").RequireAuthorization();
+        backlog.MapPlayPlan();
         backlog.MapGet("", List).WithName("ListBacklog").ProducesValidationProblem().ProducesProblem(401)
             .AddOpenApiOperationTransformer((operation, context, _) =>
             {
