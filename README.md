@@ -247,3 +247,11 @@ docker run --rm --env-file staging.env gamesbacklog-api --migrate
 
 - **Catálogo RAWG**: O plano gratuito é destinado ao desenvolvimento e uso pessoal. Antes de qualquer monetização ou distribuição comercial, confirme os termos em [Planos RAWG](https://rawg.io/apidocs) e [Termos da API RAWG](https://rawg.io/tos_api).
 - **Segurança de Tokens**: Os tokens de autenticação gerados pelo ASP.NET Core Identity são opacos e protegidos criptograficamente. Certifique-se de configurar um volume persistente para `Auth__KeyDirectory` em ambientes produtivos.
+
+## Login com Steam
+
+A integração usa Steam OpenID 2.0 para entrar ou vincular uma conta existente. A configuração usa a origem da API em `Auth__PublicOrigin` e a rota do app em `Steam__WebReturnUrl`. O ambiente de desenvolvimento aponta para `http://localhost:5080` e `http://localhost:3000/#/auth/steam/callback`. Configure URLs HTTPS no ambiente de homologação. Em proxy reverso, preserve o cabeçalho Host e encaminhe o protocolo original conforme a configuração de proxy da API.
+
+Aplique as migrations antes de usar os endpoints. A origem da URL Flutter configurada é liberada para requisições do navegador. A autenticação guarda o SteamID verificado e usa a sessão bearer do GamesBacklog. Quem já tem biblioteca vinculada a um e-mail deve entrar por e-mail e então vincular a Steam para preservar a mesma conta.
+
+O [guia Flutter](specs/005-login-steam/flutter.md) detalha o retorno do navegador e a troca de código. O login via navegador usa o OpenID Steam e dispensa chave da Steam Web API. [Documentação Steamworks](https://partner.steamgames.com/doc/features/auth)

@@ -17,24 +17,16 @@ public sealed class RequiresPostgresAttribute : FactAttribute
 public sealed class PostgresTests
 {
     [RequiresPostgres]
-    public async Task PostgresAppliesMigrationsAndIsolatesListsAndConcurrentImports()
-    {
-        var settings = new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("GAMESBACKLOG_TEST_POSTGRES"));
-        var schema = "gamesbacklog_test_" + Guid.NewGuid().ToString("N");
-        await using var connection = new NpgsqlConnection(settings.ConnectionString);
-        await connection.OpenAsync();
-        await using (var createSchema = new NpgsqlCommand($"CREATE SCHEMA {schema}", connection))
-            await createSchema.ExecuteNonQueryAsync();
-
-        settings.SearchPath = schema;
-        try
+    public Task PostgresAppliesMigrationsAndIsolatesListsAndConcurrentImports() =>
+        WithTemporarySchema(async connection =>
         {
-            await using var api = await TestApi.Start(settings.ConnectionString);
+            await using var api = await TestApi.Start(connection);
             using var owner = await api.Login("first@example.org");
             using var other = await api.Login("second@example.org");
 
             for (var i = 0; i < 21; i++)
             {
+                api.Clock.Now = api.Clock.Now.AddSeconds(1);
                 using var create = await owner.PostAsJsonAsync("/api/v1/backlog", new { title = $"Game {i:00}", platform = "PC" });
                 Assert.Equal(HttpStatusCode.Created, create.StatusCode);
             }
@@ -85,6 +77,21 @@ public sealed class PostgresTests
 
             using var sameGameOtherOwner = await other.PostAsJsonAsync("/api/v1/backlog/import", request);
             Assert.Equal(HttpStatusCode.Created, sameGameOtherOwner.StatusCode);
+        });
+
+    internal static async Task WithTemporarySchema(Func<string, Task> test)
+    {
+        var settings = new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("GAMESBACKLOG_TEST_POSTGRES"));
+        var schema = "gamesbacklog_test_" + Guid.NewGuid().ToString("N");
+        await using var connection = new NpgsqlConnection(settings.ConnectionString);
+        await connection.OpenAsync();
+        await using (var createSchema = new NpgsqlCommand($"CREATE SCHEMA {schema}", connection))
+            await createSchema.ExecuteNonQueryAsync();
+
+        settings.SearchPath = schema;
+        try
+        {
+            await test(settings.ConnectionString);
         }
         finally
         {

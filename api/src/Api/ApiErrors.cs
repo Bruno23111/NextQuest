@@ -1,6 +1,7 @@
 using FluentValidation;
 using GamesBacklog.Application;
 using GamesBacklog.Infrastructure.Identity;
+using GamesBacklog.Infrastructure.Steam;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,6 +20,7 @@ internal sealed class ApiErrors : IExceptionHandler
             CatalogUnavailableException => Results.Problem(statusCode: 503, title: "Catálogo indisponível. Tente novamente."),
             EmailUnavailableException => Results.Problem(statusCode: 503,
                 title: "Envio de e-mail indisponível. Tente reenviar a mensagem."),
+            SteamUnavailableException => Results.Problem(statusCode: 503, title: "Login Steam indisponível. Tente novamente."),
             BadHttpRequestException error => Results.Problem(statusCode: error.StatusCode, title: "Requisição inválida."),
             _ => null
         };

@@ -85,7 +85,6 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
@@ -99,7 +98,6 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("NormalizedEmail")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
@@ -120,6 +118,10 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<string>("SteamId")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
@@ -138,7 +140,51 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Users_NormalizedUserName");
 
+                    b.HasIndex("SteamId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_SteamId");
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Steam.SteamLoginFlow", b =>
+                {
+                    b.Property<string>("State")
+                        .HasMaxLength(43)
+                        .HasColumnType("character varying(43)");
+
+                    b.Property<string>("Challenge")
+                        .IsRequired()
+                        .HasMaxLength(43)
+                        .HasColumnType("character varying(43)");
+
+                    b.Property<string>("CodeHash")
+                        .HasMaxLength(43)
+                        .HasColumnType("character varying(43)");
+
+                    b.Property<long>("ExpiresAt")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("LinkOwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Nonce")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SteamId")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.HasKey("State");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Nonce")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SteamLoginFlows_Nonce");
+
+                    b.ToTable("SteamLoginFlows");
                 });
 
             modelBuilder.Entity("GamesBacklog.Domain.BacklogEntry", b =>

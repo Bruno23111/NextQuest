@@ -5,6 +5,7 @@ using GamesBacklog.Api;
 using GamesBacklog.Application;
 using GamesBacklog.Infrastructure.Identity;
 using GamesBacklog.Infrastructure.Persistence;
+using GamesBacklog.Infrastructure.Steam;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -24,6 +25,8 @@ internal sealed class TestApi : IAsyncDisposable
     private readonly WebApplication app;
     private readonly SqliteConnection? sqlite;
     public TestEmail Email { get; } = new();
+    public TestSteam Steam { get; } = new();
+    public TestClock Clock { get; } = new();
     public HttpClient Client { get; private set; } = null!;
 
     private TestApi(string? postgres)
@@ -43,6 +46,7 @@ internal sealed class TestApi : IAsyncDisposable
             {
                 ["ConnectionStrings:Backlog"] = postgres ?? "Host=localhost;Database=unused",
                 ["Auth:PublicOrigin"] = "http://localhost",
+                ["Steam:WebReturnUrl"] = "http://localhost:3000/#/auth/steam/callback",
                 ["Logging:LogLevel:Default"] = "Warning"
             });
             builder.WebHost.UseTestServer();
@@ -55,6 +59,9 @@ internal sealed class TestApi : IAsyncDisposable
             services.AddDataProtection().UseEphemeralDataProtectionProvider();
             services.AddSingleton<IEmailSender<BacklogUser>>(Email);
             services.AddSingleton<IGameCatalog>(new TestCatalog());
+            services.AddSingleton<TimeProvider>(Clock);
+            services.AddHttpClient<SteamOpenId>()
+                .ConfigurePrimaryHttpMessageHandler(() => Steam);
         });
     }
 

@@ -10,6 +10,7 @@ using GamesBacklog.Domain;
 using GamesBacklog.Infrastructure.Catalog;
 using GamesBacklog.Infrastructure.Identity;
 using GamesBacklog.Infrastructure.Persistence;
+using GamesBacklog.Infrastructure.Steam;
 using Mapster;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -55,14 +56,32 @@ public static class ApiHost
                 "Auth:PublicOrigin deve ser a origem HTTPS acessível ao usuário.").ValidateOnStart();
         services.AddOptions<SmtpOptions>().BindConfiguration("Smtp");
         services.AddTransient<IEmailSender<BacklogUser>, SmtpIdentityEmailSender>();
+        services.AddOptions<SteamSettings>().BindConfiguration("Steam")
+            .Validate(x => SteamSettings.IsValid(x.WebReturnUrl, builder.Environment.IsDevelopment()),
+                "Steam:WebReturnUrl deve ser a URL HTTPS de retorno do app.").ValidateOnStart();
+        services.AddScoped<SteamLoginStore>();
+        services.AddScoped<SteamAuthEndpoints>();
+        services.AddHttpClient<SteamOpenId>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(8);
+            client.MaxResponseContentBufferSize = 4096;
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false
+        }).RemoveAllLoggers();
+        services.AddCors(options => options.AddPolicy("steam-web", policy =>
+        {
+            var url = config.GetValue<Uri>("Steam:WebReturnUrl")!;
+            policy.WithOrigins(url.GetLeftPart(UriPartial.Authority)).AllowAnyHeader().AllowAnyMethod();
+        }));
         var protection = services.AddDataProtection().SetApplicationName("GamesBacklog");
         if (config["Auth:KeyDirectory"] is { Length: > 0 } keyDirectory)
             protection.PersistKeysToFileSystem(new DirectoryInfo(keyDirectory));
 
         services.AddIdentityCore<BacklogUser>(options =>
         {
-            options.SignIn.RequireConfirmedEmail = true;
-            options.User.RequireUniqueEmail = true;
+            options.SignIn.RequireConfirmedAccount = true;
             options.User.AllowedUserNameCharacters = "";
             options.Password.RequiredLength = 8;
             options.Password.RequireNonAlphanumeric = false;
@@ -70,6 +89,7 @@ public static class ApiHost
             options.Password.RequireUppercase = false;
             options.Password.RequireLowercase = false;
         }).AddUserStore<BacklogUserStore>().AddSignInManager().AddDefaultTokenProviders();
+        services.AddScoped<IUserConfirmation<BacklogUser>, BacklogUserConfirmation>();
         services.AddAuthentication(IdentityConstants.BearerScheme).AddBearerToken(IdentityConstants.BearerScheme, options =>
         {
             options.BearerTokenExpiration = TimeSpan.FromMinutes(15);
@@ -115,6 +135,8 @@ public static class ApiHost
         });
         app.UseExceptionHandler();
         app.UseStatusCodePages();
+        var steamWebEnabled = !string.IsNullOrEmpty(config["Steam:WebReturnUrl"]);
+        if (steamWebEnabled) app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseRateLimiter();
@@ -122,6 +144,7 @@ public static class ApiHost
         app.MapGet("/health", () => TypedResults.NoContent()).ExcludeFromDescription();
 
         var api = app.MapGroup("/api/v1");
+        if (steamWebEnabled) api.RequireCors("steam-web");
         api.MapAuth();
         api.MapBacklog();
         return app;

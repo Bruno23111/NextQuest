@@ -33,6 +33,7 @@ internal static class AuthEndpoints
     {
         var auth = api.MapGroup("/auth").WithTags("Conta").RequireRateLimiting("auth")
             .AddEndpointFilter(ValidateRequest);
+        SteamAuthEndpoints.MapSteam(auth);
         auth.MapPost("/register", Register).WithName("Register").ProducesValidationProblem()
             .ProducesProblem(503).ProducesProblem(429);
         auth.MapGet("/confirmEmail", Confirm).WithName("ConfirmEmail").Produces<string>(200, "text/plain")

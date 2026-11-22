@@ -45,11 +45,14 @@ public sealed class BacklogUserStore(BacklogDbContext db, IdentityErrorDescriber
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException
             {
                 SqlState: PostgresErrorCodes.UniqueViolation,
-                ConstraintName: BacklogDbContext.EmailIndex or BacklogDbContext.UserNameIndex
-            })
+                ConstraintName: BacklogDbContext.EmailIndex or BacklogDbContext.UserNameIndex or BacklogDbContext.SteamUserIndex
+            } conflict)
         {
             db.Entry(user).State = EntityState.Detached;
-            return IdentityResult.Failed(errors.DuplicateEmail(user.Email!));
+            return IdentityResult.Failed(user.Email is not null &&
+                conflict.ConstraintName != BacklogDbContext.SteamUserIndex
+                ? errors.DuplicateEmail(user.Email)
+                : new IdentityError { Code = "DuplicateSteamUser", Description = "A conta Steam já está vinculada." });
         }
     }
 
