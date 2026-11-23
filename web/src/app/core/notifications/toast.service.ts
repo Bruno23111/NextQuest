@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, untracked } from '@angular/core';
 
 export type ToastTone = 'error' | 'success' | 'info';
 
@@ -19,7 +19,9 @@ export class ToastService {
     const text = message.trim();
     if (!text) return;
 
-    const existing = this.toasts().find((t) => t.message === text && t.tone === tone);
+    const existing = untracked(() => this.toasts()).find(
+      (t) => t.message === text && t.tone === tone,
+    );
     const ttl = durationMs ?? (tone === 'error' ? 6000 : 4500);
 
     if (existing) {

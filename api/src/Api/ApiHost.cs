@@ -40,10 +40,14 @@ public static class ApiHost
         if (steamWebEnabled) api.RequireCors("steam-web");
         api.MapAuth();
         api.MapBacklog();
+        api.MapCatalogAdmin();
         api.MapGameReviews();
         api.MapDeals();
+        api.MapDealsAdmin();
         api.MapSteamGameData();
         api.MapUserProfile();
+        api.MapSocial();
+        api.MapPlayStation();
         api.MapDiscord();
     }
 }

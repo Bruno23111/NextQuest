@@ -9,6 +9,8 @@ import {
   PagedResult,
 } from '../../../core/models/api.models';
 
+export type CatalogFilter = 'all' | 'popular' | 'new';
+
 @Injectable({ providedIn: 'root' })
 export class CatalogApi {
   private readonly http = inject(HttpClient);
@@ -17,6 +19,10 @@ export class CatalogApi {
   popular(page = 1): Observable<PagedResult<CatalogGame>> {
     const params = new HttpParams().set('page', page);
     return this.http.get<PagedResult<CatalogGame>>(`${this.apiBase}/catalog/popular`, { params });
+  }
+
+  browse(filter: Exclude<CatalogFilter, 'all'>, q: string, page: number) {
+    return this.http.get<PagedResult<CatalogGame>>(`${this.apiBase}/catalog/browse`, { params: { filter, q, page } });
   }
 
   search(q: string, page = 1): Observable<PagedResult<CatalogGame>> {

@@ -1,6 +1,46 @@
 name: nextquest
 
 services:
+  web:
+    build: ./web
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:4201:80"
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+      - path: .env.development.local
+        required: false
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Backlog: Host=postgres;Port=5432;Database=gamesbacklog;Username=gamesbacklog;Password=local-dev-only
+      Auth__PublicOrigin: http://127.0.0.1:5080
+      Steam__WebReturnUrl: http://localhost:4201/auth/steam/callback
+      Smtp__Host: mailpit
+      Smtp__Port: 1025
+      Smtp__From: conta@gamesbacklog.local
+      Smtp__EnableSsl: "false"
+    entrypoint: ["/bin/sh"]
+    command:
+      - -c
+      - dotnet GamesBacklog.Api.dll --migrate && exec dotnet GamesBacklog.Api.dll
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    ports:
+      - "127.0.0.1:5080:8080"
+
   postgres:
     image: postgres:18
     environment:

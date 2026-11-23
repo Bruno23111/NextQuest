@@ -52,7 +52,15 @@ internal static class ApiServiceRegistration
                 policy.WithOrigins(url.GetLeftPart(UriPartial.Authority)).AllowAnyHeader().AllowAnyMethod();
         }));
 
-        services.AddAuthorization();
+        services.AddAuthorization(options => options.AddPolicy(CatalogAdminEndpoints.Policy, policy =>
+            policy.RequireAuthenticatedUser().RequireAssertion(context =>
+            {
+                if (!Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                    return false;
+
+                return (config["Admin:UserIds"] ?? "").Split(',').Any(value =>
+                    Guid.TryParse(value, out var adminId) && adminId == userId);
+            })));
 
         services.ConfigureHttpJsonOptions(options =>
         {
@@ -77,6 +85,8 @@ internal static class ApiServiceRegistration
             options.AddPolicy("auth", context => Limit(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 30));
             options.AddPolicy("discord", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 8));
+            options.AddPolicy("social", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 20));
             options.AddPolicy("catalog", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 45));
         });

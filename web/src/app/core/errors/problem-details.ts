@@ -24,6 +24,14 @@ export function parseApiError(error: unknown): ParsedApiError {
     };
   }
 
+  if (error.status === 413) {
+    return {
+      status: 413,
+      message: 'Os arquivos enviados são grandes demais. Reduza o tamanho e tente novamente.',
+      fieldErrors: {},
+    };
+  }
+
   const body = error.error as ProblemDetails | string | null;
   if (body && typeof body === 'object') {
     const fieldErrors = body.errors ?? {};

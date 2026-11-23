@@ -29,19 +29,32 @@ internal static class BacklogEndpoints
             .ProducesValidationProblem().ProducesProblem(404).ProducesProblem(401);
         backlog.MapDelete("/{id:guid}", Delete).WithName("DeleteBacklog").ProducesProblem(404).ProducesProblem(401);
         backlog.MapPost("/import", Import).WithName("ImportBacklog").RequireRateLimiting("catalog")
-            .ProducesValidationProblem().ProducesProblem(404).ProducesProblem(409).ProducesProblem(503)
+            .ProducesValidationProblem().ProducesProblem(404).ProducesProblem(409)
             .ProducesProblem(429).ProducesProblem(401);
 
         api.MapGet("/catalog/games", Search).WithName("SearchCatalog").WithTags("Catálogo")
             .RequireAuthorization().RequireRateLimiting("catalog").ProducesValidationProblem()
-            .ProducesProblem(503).ProducesProblem(429).ProducesProblem(401);
+            .ProducesProblem(429).ProducesProblem(401);
         api.MapGet("/catalog/games/{rawgId:int:min(1)}", FindCatalogGame)
             .WithName("FindCatalogGame").WithTags("Catálogo")
             .RequireAuthorization().RequireRateLimiting("catalog")
-            .ProducesProblem(401).ProducesProblem(404).ProducesProblem(429).ProducesProblem(503);
+            .ProducesProblem(401).ProducesProblem(404).ProducesProblem(429);
         api.MapGet("/catalog/popular", Popular).WithName("PopularCatalog").WithTags("Catálogo")
             .RequireAuthorization().RequireRateLimiting("catalog").ProducesValidationProblem()
-            .ProducesProblem(503).ProducesProblem(429).ProducesProblem(401);
+            .ProducesProblem(429).ProducesProblem(401);
+        api.MapGet("/catalog/browse", Browse).WithName("BrowsePublishedCatalog").WithTags("Catálogo")
+            .RequireAuthorization().ProducesValidationProblem().ProducesProblem(401);
+    }
+
+    private static async Task<PagedResult<CatalogGame>> Browse(
+        GamesBacklog.Infrastructure.Catalog.StoredCatalog catalog, IValidator<CatalogQuery> rules,
+        CancellationToken ct, [FromQuery] string filter, [FromQuery] int page = 1, [FromQuery] string? q = null)
+    {
+        if (filter is not ("popular" or "new"))
+            throw new ValidationException([new("filter", "Escolha Populares ou Novidades.")]);
+        if (!string.IsNullOrWhiteSpace(q))
+            await rules.ValidateAndThrowAsync(new CatalogQuery(q, page), ct);
+        return await catalog.Browse(q, page, filter, ct);
     }
 
     private static async Task<Ok<CatalogGame>> FindCatalogGame(int rawgId, IGameCatalog catalog, CancellationToken ct) =>

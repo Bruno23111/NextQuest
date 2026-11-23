@@ -1,6 +1,7 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, effect, inject, input, untracked } from '@angular/core';
+import { ToastService, ToastTone } from '../../core/notifications/toast.service';
 
-const TONE_ICONS: Record<'error' | 'success' | 'info', string> = {
+const TONE_ICONS: Record<ToastTone, string> = {
   error: 'error_outline',
   success: 'check_circle',
   info: 'info',
@@ -10,7 +11,7 @@ const TONE_ICONS: Record<'error' | 'success' | 'info', string> = {
   selector: 'app-feedback-banner',
   standalone: true,
   template: `
-    @if (message()) {
+    @if (inline() && message()) {
       <div class="banner" [class]="'banner banner--' + tone()" role="alert">
         <span class="ms-icon" aria-hidden="true">{{ icon() }}</span>
         <span>{{ message() }}</span>
@@ -49,7 +50,21 @@ const TONE_ICONS: Record<'error' | 'success' | 'info', string> = {
   `,
 })
 export class FeedbackBannerComponent {
+  private readonly toast = inject(ToastService);
+
   readonly message = input<string | null>(null);
-  readonly tone = input<'error' | 'success' | 'info'>('error');
+  readonly tone = input<ToastTone>('error');
+  readonly inline = input<boolean>(false);
+
   protected readonly icon = computed(() => TONE_ICONS[this.tone()]);
+
+  constructor() {
+    effect(() => {
+      const msg = this.message()?.trim();
+      const tone = this.tone();
+      if (msg && !this.inline()) {
+        untracked(() => this.toast.show(msg, tone));
+      }
+    });
+  }
 }

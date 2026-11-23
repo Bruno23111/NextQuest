@@ -40,10 +40,14 @@ public static class DependencyInjection
         services.AddScoped<IGameReviewStore, GameReviewStore>();
         services.AddScoped<IPlayPlanStore, PlayPlanStore>();
         services.AddScoped<IUserProfileStore, UserProfileStore>();
+        services.AddScoped<SocialStore>();
+        services.AddScoped<PlayStationStore>();
 
         services.AddMemoryCache();
         services.AddOptions<IsThereAnyDealOptions>().BindConfiguration("IsThereAnyDeal");
-        services.AddHttpClient<IGameDeals, IsThereAnyDeal>(client =>
+        services.AddScoped<StoredDeals>();
+        services.AddScoped<IGameDeals>(provider => provider.GetRequiredService<StoredDeals>());
+        services.AddHttpClient<IsThereAnyDeal>(client =>
         {
             client.BaseAddress = new Uri("https://api.isthereanydeal.com/");
             client.Timeout = TimeSpan.FromSeconds(8);
@@ -56,8 +60,9 @@ public static class DependencyInjection
             client.BaseAddress = new Uri("https://api.rawg.io/api/");
             client.Timeout = TimeSpan.FromSeconds(8);
         }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false }).RemoveAllLoggers();
-        services.AddScoped<IGameCatalog>(provider => provider.GetRequiredService<RawgCatalog>());
-        services.AddScoped<IPopularGameCatalog>(provider => provider.GetRequiredService<RawgCatalog>());
+        services.AddScoped<StoredCatalog>();
+        services.AddScoped<IGameCatalog>(provider => provider.GetRequiredService<StoredCatalog>());
+        services.AddScoped<IPopularGameCatalog>(provider => provider.GetRequiredService<StoredCatalog>());
 
         services.AddOptions<SmtpOptions>().BindConfiguration("Smtp");
         services.AddTransient<IEmailSender<BacklogUser>, SmtpIdentityEmailSender>();

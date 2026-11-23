@@ -51,7 +51,31 @@ public sealed class IsThereAnyDeal(HttpClient http, IOptions<IsThereAnyDealOptio
             .DistinctBy(game => game.Id).ToDictionary(game => game.Id);
         if (games.Count == 0) return new([], null);
 
-        using var prices = new HttpRequestMessage(HttpMethod.Post, "games/prices/v3?country=BR&deals=true" + ShopQuery(shop))
+        return new(Order(await CurrentOffers(games, sort, shop, ct), sort).ToArray(), null);
+    }
+
+    public async Task<IReadOnlyList<GameDeal>> PopularOffers(int count, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"stats/most-popular/v1?limit={count}");
+        var ranked = (await Read<RankedGame[]>(request, ct))
+            .Where(game => game.Id != Guid.Empty && game.Type == "game" && !game.Mature)
+            .OrderBy(game => game.Position).DistinctBy(game => game.Id).Take(count);
+        var offers = new List<GameDeal>();
+        foreach (var batch in ranked.Chunk(200))
+        {
+            var games = batch.ToDictionary(game => game.Id,
+                game => new ProviderGame(game.Id, game.Title, null, null, false));
+            offers.AddRange(await CurrentOffers(games, DealSort.Price, null, ct));
+        }
+
+        return offers;
+    }
+
+    private async Task<IReadOnlyList<GameDeal>> CurrentOffers(IReadOnlyDictionary<Guid, ProviderGame> games,
+        DealSort sort, DealShop? shop, CancellationToken ct)
+    {
+        using var prices = new HttpRequestMessage(HttpMethod.Post,
+            "games/prices/v3?country=BR&deals=true" + ShopQuery(shop))
         {
             Content = JsonContent.Create(games.Keys.ToArray())
         };
@@ -67,7 +91,7 @@ public sealed class IsThereAnyDeal(HttpClient http, IOptions<IsThereAnyDealOptio
             if (best is not null) offers.Add(best);
         }
 
-        return new(Order(offers, sort).ToArray(), null);
+        return offers;
     }
 
     private static string ShopQuery(DealShop? shop) => shop switch
@@ -113,13 +137,16 @@ public sealed class IsThereAnyDeal(HttpClient http, IOptions<IsThereAnyDealOptio
         var image = game.Assets?.Boxart;
         return new(game.Id, game.Title, deal.Shop.Name, deal.Price.Amount,
             deal.Regular?.Currency == currency ? deal.Regular.Amount : null,
-            currency, deal.Cut, deal.Url!, IsHttps(image) ? image : null);
+            currency, deal.Cut, deal.Url!, IsHttps(image) ? image : CoverFor(game.Id));
     }
+
+    internal static string CoverFor(Guid gameId) => $"https://assets.isthereanydeal.com/{gameId:D}/boxart.jpg";
 
     private static bool IsHttps(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var url) &&
         url.Scheme == Uri.UriSchemeHttps && url.UserInfo.Length == 0;
 
     private sealed record ProviderPage(ProviderGame[]? List, bool HasMore, int? NextOffset);
+    private sealed record RankedGame(int Position, Guid Id, string? Title, string? Type, bool Mature);
     private sealed record ProviderGame(Guid Id, string? Title, ProviderAssets? Assets, ProviderDeal? Deal, bool Mature);
     private sealed record ProviderPrices(Guid Id, ProviderDeal[]? Deals);
     private sealed record ProviderAssets(string? Boxart);

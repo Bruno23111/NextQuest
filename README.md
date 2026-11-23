@@ -157,12 +157,79 @@ A API escuta por padrão em `/api/v1` e possui os seguintes grupos de rotas:
 
 ## 💻 Desenvolvimento Local
 
+### Executar com Docker Compose
+
+Para iniciar o frontend, a API, o PostgreSQL e o Mailpit em containers (incluindo aplicação automática das migrações):
+
+```bash
+docker compose up -d --build --wait
+```
+
+- **Site**: [http://localhost:4201](http://localhost:4201) — encaminha as chamadas de `/api` para a API
+- **API**: [http://localhost:5080](http://localhost:5080) — health check em `/health`
+- **PostgreSQL**: `localhost:5432` (`gamesbacklog` / `local-dev-only`)
+- **Mailpit**: [http://localhost:8025](http://localhost:8025)
+
+Para encerrar os containers: `docker compose down`. Os dados do PostgreSQL permanecem no volume `postgres-data`.
+
+#### Integrações no Docker local
+
+O Compose carrega os arquivos opcionais `.env`, `.env.local` e `.env.development.local` nessa ordem. Se já tiver configurado as chaves em um deles, reaproveite o arquivo existente. Se precisar criar o primeiro arquivo de configuração, use o modelo na raiz do repositório:
+
+```bash
+cp -n .env.example .env.development.local
+```
+
+Preencha as credenciais no arquivo `.env.development.local` sem aspas. O Git ignora esse arquivo e o Compose o carrega somente no container da API. Os valores padrão sem segredo continuam em `appsettings.Development.json`; o Compose define as URLs locais do Docker.
+
+| Recurso | Configuração |
+|---|---|
+| Catálogo | `Rawg__ApiKey` |
+| Promoções | `IsThereAnyDeal__ApiKey` |
+| Login Steam | Use o site em `http://localhost:4201`. O retorno já está configurado no Compose. |
+| Biblioteca e conquistas Steam | `Steam__ApiKey` |
+| Vínculo com Discord | `Discord__ClientId`, `Discord__ClientSecret` e `Discord__RedirectUri`. Cadastre no OAuth2 do Discord a mesma URL de retorno do arquivo. |
+
+Após editar o arquivo, recrie a API com `docker compose up -d --wait --force-recreate api`. Use `sudo` se sua sessão exigir. Se o Discord recusar o callback HTTP, use um endereço HTTPS que sirva o frontend e registre esse mesmo endereço no Discord e no arquivo local.
+
+#### Administração do catálogo
+
+Configure `Admin__UserIds` no arquivo de ambiente da API com os UUIDs das contas autorizadas, separados por vírgula. O ID pode ser consultado no PostgreSQL após criar a conta:
+
+```bash
+docker compose exec postgres psql -U gamesbacklog -d gamesbacklog
+```
+
+```sql
+SELECT "Id" FROM "Users" WHERE "NormalizedEmail" = upper('seu-email@exemplo.com');
+```
+
+Reconstrua os serviços com `docker compose up -d --build --wait`. A API aplica a migração automaticamente. Entre com a conta autorizada, abra **Administração**, busque um título na RAWG e clique em **Adicionar ao catálogo**. O catálogo começa vazio. A busca, os detalhes, as avaliações e a importação para a biblioteca dos usuários usam os jogos já publicados no PostgreSQL.
+
+Em **Administração → Gerenciar promoções**, consulte o IsThereAnyDeal com a chave `IsThereAnyDeal__ApiKey` e publique as ofertas desejadas. A página **Promoções** começa vazia e lê as ofertas publicadas no PostgreSQL. Cada oferta fica visível por até 24 horas a partir da consulta. Consulte e publique novamente para atualizar a oferta.
+
+Em **Adicionar jogos em lote**, escolha **Populares** ou **Novidades** e uma quantidade entre 10, 50, 100, 200 e 500. Novidades reúne lançamentos dos últimos 12 meses, dos mais recentes para os mais antigos na prévia. Consulte a prévia da RAWG, escolha os títulos e confirme. Títulos já publicados podem ser selecionados para receber a marca da lista, sem duplicar o jogo. Os filtros do catálogo usam essas marcas no PostgreSQL.
+
+Em Promoções, o lote consulta o ranking do IsThereAnyDeal e publica apenas os títulos que têm desconto disponível no Brasil. O lote preserva registros existentes, inclusive ofertas expiradas. Para renovar uma oferta, use a publicação individual.
+
+#### Amigos e lista de desejos
+
+Em **Amigos**, copie o seu código para compartilhar ou informe o código de outro jogador para enviar um pedido. Depois que ele aceitar, abra o perfil para ver os jogos marcados como **Jogando**, a biblioteca e a lista de desejos. Somente amigos aceitos têm acesso a esses dados, e as anotações da biblioteca são privadas.
+
+O código de amizade é aleatório e separado do ID da conta. **Gerar novo código** invalida o código anterior para novos pedidos. As amizades e os pedidos já enviados continuam válidos.
+
+No catálogo, use **Adicionar aos desejos** para salvar um título. A aba **Lista de desejos** mostra os jogos salvos e permite removê-los.
+
+#### PlayStation
+
+A aba **PlayStation** mostra os jogos PlayStation da biblioteca NextQuest, incluindo títulos adicionados pelo catálogo. É possível adicionar um jogo à biblioteca e registrar manualmente os troféus de bronze, prata, ouro e platina por título. A aba usa os dados salvos no PostgreSQL e ainda não sincroniza contas da PSN.
+
 ### 1. Iniciar serviços de suporte
 
 Inicie o banco de dados PostgreSQL e o servidor SMTP local (Mailpit):
 
 ```bash
-docker compose up -d --wait
+docker compose up -d --wait postgres mailpit
 ```
 
 - **PostgreSQL**: `localhost:5432` (`gamesbacklog` / `local-dev-only`)

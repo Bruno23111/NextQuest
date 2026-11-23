@@ -1,8 +1,11 @@
 namespace GamesBacklog.Application;
 
-public sealed class CatalogUnavailableException : Exception
+public enum CatalogFailure { Unavailable, MissingKey, RejectedKey, RateLimited }
+
+public sealed class CatalogUnavailableException(CatalogFailure failure = CatalogFailure.Unavailable)
+    : Exception("Game catalog unavailable.")
 {
-    public CatalogUnavailableException() : base("Game catalog unavailable.") { }
+    public CatalogFailure Failure { get; } = failure;
 }
 
 public sealed class GameNotFoundException : Exception;

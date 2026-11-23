@@ -19,7 +19,13 @@ internal sealed class ApiErrors : IExceptionHandler
             DiscordLinkConflictException => Results.Problem(statusCode: 409, title: "Este Discord já está vinculado ou não corresponde à conta conectada."),
             DiscordOAuthNotConfiguredException => Results.Problem(statusCode: 503, title: "O vínculo com Discord ainda não está configurado no servidor."),
             DuplicateImportException => Results.Problem(statusCode: 409, title: "Jogo já importado para esta plataforma."),
-            CatalogUnavailableException => Results.Problem(statusCode: 503, title: "Catálogo indisponível. Tente novamente."),
+            CatalogUnavailableException error => Results.Problem(statusCode: 503, title: error.Failure switch
+            {
+                CatalogFailure.MissingKey => "A chave da RAWG ainda não foi configurada no servidor.",
+                CatalogFailure.RejectedKey => "A RAWG recusou a solicitação. Confira a chave e o acesso da conta.",
+                CatalogFailure.RateLimited => "A RAWG atingiu o limite de consultas. Aguarde antes de importar novamente.",
+                _ => "A RAWG está indisponível no momento. Tente importar novamente."
+            }),
             DealsNotConfiguredException => Results.Problem(statusCode: 503, title: "A integração de promoções ainda aguarda configuração no servidor."),
             DealsUnavailableException => Results.Problem(statusCode: 503, title: "Promoções indisponíveis no momento. Tente novamente."),
             EmailUnavailableException => Results.Problem(statusCode: 503,

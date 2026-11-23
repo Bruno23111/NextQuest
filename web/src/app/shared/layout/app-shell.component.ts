@@ -12,6 +12,8 @@ import { filter } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth.store';
 import { GameStatus } from '../../core/models/api.models';
 import { UserProfileStore } from '../../core/profile/user-profile.store';
+import { CatalogAdminApi } from '../../features/admin/catalog-admin.api';
+import { WishlistStore } from '../../features/social/wishlist.store';
 
 interface TopTab {
   label: string;
@@ -27,6 +29,7 @@ const TOP_TABS: TopTab[] = [
 
 @Component({
   selector: 'app-shell',
+  providers: [WishlistStore],
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
   template: `
@@ -93,10 +96,36 @@ const TOP_TABS: TopTab[] = [
             <span class="rail__label">Catálogo</span>
           </a>
 
+          <a class="rail__item" routerLink="/friends" routerLinkActive="is-active"
+            data-tooltip="Amigos" (click)="closeMobileMenu()">
+            <span class="ms-icon" aria-hidden="true">group</span>
+            <span class="rail__label">Amigos</span>
+          </a>
+
+          <a class="rail__item" routerLink="/wishlist" routerLinkActive="is-active"
+            data-tooltip="Lista de desejos" (click)="closeMobileMenu()">
+            <span class="ms-icon" aria-hidden="true">favorite</span>
+            <span class="rail__label">Lista de desejos</span>
+          </a>
+
           <a class="rail__item" routerLink="/deals" routerLinkActive="is-active"
             data-tooltip="Promoções" (click)="closeMobileMenu()">
             <span class="ms-icon" aria-hidden="true">sell</span>
             <span class="rail__label">Promoções</span>
+          </a>
+
+          @if (canAdministerCatalog()) {
+            <a class="rail__item" routerLink="/admin" routerLinkActive="is-active"
+              data-tooltip="Administração" (click)="closeMobileMenu()">
+              <span class="ms-icon" aria-hidden="true">admin_panel_settings</span>
+              <span class="rail__label">Administração</span>
+            </a>
+          }
+
+          <a class="rail__item" routerLink="/playstation" routerLinkActive="is-active"
+            data-tooltip="PlayStation" (click)="closeMobileMenu()">
+            <span class="ms-icon" aria-hidden="true">stadia_controller</span>
+            <span class="rail__label">PlayStation</span>
           </a>
 
           <a
@@ -257,6 +286,7 @@ const TOP_TABS: TopTab[] = [
 })
 export class AppShellComponent implements OnInit {
   private readonly auth = inject(AuthStore);
+  private readonly catalogAdmin = inject(CatalogAdminApi);
   private readonly profileStore = inject(UserProfileStore);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -267,6 +297,7 @@ export class AppShellComponent implements OnInit {
   protected readonly searchOpen = signal(false);
   protected readonly currentUrl = signal(this.router.url);
   protected readonly profile = this.profileStore.profile;
+  protected readonly canAdministerCatalog = signal(false);
 
   protected readonly displayName = computed(
     () => this.profile()?.displayName?.trim() || 'Jogador',
@@ -311,6 +342,8 @@ export class AppShellComponent implements OnInit {
 
   ngOnInit(): void {
     this.profileStore.load();
+    this.catalogAdmin.hasAccess().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((allowed) => this.canAdministerCatalog.set(allowed));
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),

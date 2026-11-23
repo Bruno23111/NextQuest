@@ -1,6 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { WishlistButtonComponent } from '../../social/wishlist-button.component';
 import { parseApiError } from '../../../core/errors/problem-details';
 import { CatalogGame } from '../../../core/models/api.models';
 import { FeedbackBannerComponent } from '../../../shared/components/feedback-banner.component';
@@ -8,7 +11,7 @@ import { GameCoverComponent } from '../../../shared/components/game-cover.compon
 import { MetacriticBadgeComponent } from '../../../shared/components/metacritic-badge.component';
 import { PaginationComponent } from '../../../shared/components/pagination.component';
 import { SelectComponent, SelectOption } from '../../../shared/components/select.component';
-import { CatalogApi } from '../services/catalog.api';
+import { CatalogApi, CatalogFilter } from '../services/catalog.api';
 
 const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -23,6 +26,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
     GameCoverComponent,
     MetacriticBadgeComponent,
     SelectComponent,
+    WishlistButtonComponent,
   ],
   template: `
     <div class="nq-page">
@@ -54,22 +58,41 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
           <button
             type="button"
             class="nq-btn"
-            [class.nq-btn--secondary]="!activeQuery()"
-            [class.nq-btn--ghost]="!!activeQuery()"
+            [class.nq-btn--secondary]="!activeQuery() && filter() === 'all'"
+            [class.nq-btn--ghost]="!!activeQuery() || filter() !== 'all'"
             (click)="clearSearch()"
           >
-            <span class="ms-icon" aria-hidden="true">local_fire_department</span>
-            Populares
+            <span class="ms-icon" aria-hidden="true">storefront</span>
+            Todos os jogos
           </button>
         </form>
       </section>
+
+      <div class="nq-tabs" role="group" aria-label="Filtrar catálogo">
+        @for (option of filters; track option.value) {
+          <button
+            type="button"
+            class="nq-tab"
+            [class.is-active]="filter() === option.value"
+            [attr.aria-pressed]="filter() === option.value"
+            (click)="changeFilter(option.value)"
+          >
+            <span class="ms-icon" aria-hidden="true">{{ option.icon }}</span>
+            {{ option.label }}
+          </button>
+        }
+      </div>
 
       <div class="section-heading">
         <h2>
           @if (activeQuery()) {
             Resultados para "{{ activeQuery() }}"
+          } @else if (filter() === 'popular') {
+            Jogos populares
+          } @else if (filter() === 'new') {
+            Novidades
           } @else {
-            Populares no Catálogo
+            Jogos no catálogo
           }
         </h2>
         @if (!loading() && games().length > 0) {
@@ -89,11 +112,15 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
       } @else if (games().length === 0) {
         <div class="nq-empty">
           <h3>Nenhum título encontrado</h3>
-          <p>Tente outro termo de busca ou volte para os jogos populares.</p>
           @if (activeQuery()) {
+            <p>Tente outro termo de busca ou volte ao catálogo.</p>
             <button type="button" class="nq-btn nq-btn--primary" (click)="clearSearch()">
-              Ver jogos populares
+              Ver todos os jogos
             </button>
+          } @else if (filter() !== 'all') {
+            <p>Ainda não há jogos publicados nesta lista.</p>
+          } @else {
+            <p>O catálogo ainda não tem jogos publicados.</p>
           }
         </div>
       } @else {
@@ -172,6 +199,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
                 } @else {
                   <span class="nq-chip">Sem plataforma disponível</span>
                 }
+                <app-wishlist-button [gameId]="game.rawgId" />
               </div>
             </article>
           }
@@ -318,6 +346,14 @@ export class CatalogPageComponent implements OnInit {
       ),
   );
   protected readonly activeQuery = signal('');
+  protected readonly filter = signal<CatalogFilter>('all');
+  protected readonly filters: { value: CatalogFilter; label: string; icon: string }[] = [
+    { value: 'all', label: 'Todos', icon: 'apps' },
+    { value: 'popular', label: 'Populares', icon: 'local_fire_department' },
+    { value: 'new', label: 'Novidades', icon: 'new_releases' },
+  ];
+  private readonly destroyRef = inject(DestroyRef);
+  private activeRequest?: Subscription;
   protected readonly page = signal(1);
   protected readonly hasMore = signal(false);
   protected readonly loading = signal(true);
@@ -330,7 +366,7 @@ export class CatalogPageComponent implements OnInit {
   private readonly platformSelections = new Map<number, number>();
 
   ngOnInit(): void {
-    this.route.queryParamMap.subscribe((params) => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const q = params.get('q')?.trim() ?? '';
       this.query = q;
       this.activeQuery.set(q);
@@ -348,6 +384,14 @@ export class CatalogPageComponent implements OnInit {
   protected clearSearch(): void {
     this.query = '';
     this.activeQuery.set('');
+    this.filter.set('all');
+    this.page.set(1);
+    this.load();
+  }
+
+  protected changeFilter(filter: CatalogFilter): void {
+    if (this.filter() === filter) return;
+    this.filter.set(filter);
     this.page.set(1);
     this.load();
   }
@@ -397,12 +441,16 @@ export class CatalogPageComponent implements OnInit {
   }
 
   private load(): void {
+    this.activeRequest?.unsubscribe();
     this.loading.set(true);
     this.errorMessage.set(null);
     const q = this.activeQuery();
-    const request$ = q ? this.api.search(q, this.page()) : this.api.popular(this.page());
+    const filter = this.filter();
+    const request$ = filter !== 'all'
+      ? this.api.browse(filter, q, this.page())
+      : q ? this.api.search(q, this.page()) : this.api.popular(this.page());
 
-    request$.subscribe({
+    this.activeRequest = request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.games.set(res.items);
         this.hasMore.set(res.hasMore);

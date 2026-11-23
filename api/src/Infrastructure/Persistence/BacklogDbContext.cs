@@ -1,4 +1,5 @@
 using GamesBacklog.Domain;
+using GamesBacklog.Infrastructure.Deals;
 using GamesBacklog.Infrastructure.Identity;
 using GamesBacklog.Infrastructure.Steam;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,45 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        model.Entity<PlayStationTrophies>(progress =>
+        {
+            progress.ToTable("PlayStationTrophies");
+            progress.HasKey(x => x.GameId);
+            progress.HasOne<BacklogEntry>().WithOne().HasForeignKey<PlayStationTrophies>(x => x.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<Friendship>(link =>
+        {
+            link.ToTable("Friendships");
+            link.HasKey(x => new { x.FirstId, x.SecondId });
+            link.HasOne<BacklogUser>().WithMany().HasForeignKey(x => x.FirstId).OnDelete(DeleteBehavior.Cascade);
+            link.HasOne<BacklogUser>().WithMany().HasForeignKey(x => x.SecondId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<Wish>(wish =>
+        {
+            wish.ToTable("Wishes");
+            wish.HasKey(x => new { x.OwnerId, x.GameId });
+            wish.HasOne<BacklogUser>().WithMany().HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            wish.HasOne<GamesBacklog.Infrastructure.Catalog.CatalogEntry>().WithMany().HasForeignKey(x => x.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<PublishedDeal>(deal =>
+        {
+            deal.ToTable("PublishedDeals");
+            deal.HasKey(x => new { x.GameId, x.Shop });
+            deal.HasIndex(x => x.ExpiresAt);
+        });
+
+        model.Entity<GamesBacklog.Infrastructure.Catalog.CatalogEntry>(game =>
+        {
+            game.ToTable("CatalogEntries");
+            game.Property(x => x.Id).ValueGeneratedNever();
+            game.HasIndex(x => new { x.Title, x.Id });
+        });
+
         model.Entity<BacklogUser>(user =>
         {
             user.Property(x => x.Email).HasMaxLength(256);
@@ -30,6 +70,10 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
             user.HasIndex(x => x.NormalizedEmail).IsUnique().HasDatabaseName(EmailIndex);
             user.HasIndex(x => x.NormalizedUserName).IsUnique().HasDatabaseName(UserNameIndex);
             user.Property(x => x.SteamId).HasMaxLength(17);
+            var friendCode = user.Property(x => x.FriendCode).HasMaxLength(20);
+            if (Database.IsNpgsql())
+                friendCode.HasDefaultValueSql("substr(replace(gen_random_uuid()::text, '-', ''), 13, 20)");
+            user.HasIndex(x => x.FriendCode).IsUnique();
             user.HasIndex(x => x.DiscordUserId).IsUnique();
             user.Property(x => x.PlayQueue).HasDefaultValue(Array.Empty<Guid>());
             user.HasIndex(x => x.SteamId).IsUnique().HasDatabaseName(SteamUserIndex);

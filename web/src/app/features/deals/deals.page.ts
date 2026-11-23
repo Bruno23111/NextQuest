@@ -64,7 +64,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
           </span>
           <h1 class="deals-title">Promoções</h1>
           <p>
-            Acompanhe descontos em jogos de PC via
+            Confira ofertas publicadas com dados do
             <a href="https://isthereanydeal.com/" target="_blank" rel="noopener noreferrer">
               IsThereAnyDeal
             </a>
@@ -151,7 +151,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
             <span class="ms-icon deal-popular__icon" aria-hidden="true">local_fire_department</span>
             <span class="deal-popular__text">
               <strong>Jogos populares</strong>
-              <small>1.000+ avaliações na Steam</small>
+              <small>Ranking do IsThereAnyDeal ou 1.000+ avaliações na Steam</small>
             </span>
             <span class="deal-popular__switch" aria-hidden="true"></span>
           </label>
@@ -184,12 +184,12 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
                 Limpar filtro
               </button>
             } @else {
-              <p>Nenhuma oferta disponível nesta página.</p>
+              <p>Nenhuma oferta publicada disponível nesta página.</p>
             }
           </div>
         } @else {
           <div class="nq-poster-grid">
-            @for (offer of current.items; track offer.id) {
+            @for (offer of current.items; track offer.id + ':' + offer.shop) {
               <article class="nq-game-card">
                 <app-game-cover
                   [src]="offer.coverUrl"

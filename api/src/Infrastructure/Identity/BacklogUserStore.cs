@@ -20,7 +20,7 @@ public sealed class BacklogUserStore(BacklogDbContext db, IdentityErrorDescriber
         if (db.Entry(user).State == EntityState.Detached)
             db.Users.Attach(user);
         user.ConcurrencyStamp = Guid.NewGuid().ToString();
-        db.Users.Update(user);
+        db.Users.Update(user).Property(x => x.FriendCode).IsModified = false;
         return await Save(user, ct);
     }
 

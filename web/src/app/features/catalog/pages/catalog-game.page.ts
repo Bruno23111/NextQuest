@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable, finalize } from 'rxjs';
+import { WishlistButtonComponent } from '../../social/wishlist-button.component';
 import { parseApiError } from '../../../core/errors/problem-details';
 import { CatalogGame, PagedResult } from '../../../core/models/api.models';
 import { FeedbackBannerComponent } from '../../../shared/components/feedback-banner.component';
@@ -26,6 +27,7 @@ const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     MetacriticBadgeComponent,
     PaginationComponent,
     SelectComponent,
+    WishlistButtonComponent,
   ],
   template: `
     <div class="nq-page">
@@ -68,6 +70,7 @@ const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
                 }
 
                 <h1>{{ current.title }}</h1>
+                <app-wishlist-button [gameId]="current.rawgId" />
 
                 @if (current.metacriticUrl; as url) {
                   <p>

@@ -111,6 +111,71 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.ToTable("GameReviews");
                 });
 
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Catalog.CatalogEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("NewRelease")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Popular")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Title", "Id");
+
+                    b.ToTable("CatalogEntries", (string)null);
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Deals.PublishedDeal", b =>
+                {
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Shop")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Discount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Popular")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("GameId", "Shop");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.ToTable("PublishedDeals", (string)null);
+                });
+
             modelBuilder.Entity("GamesBacklog.Infrastructure.Identity.BacklogUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -153,6 +218,13 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("FriendCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValueSql("substr(replace(gen_random_uuid()::text, '-', ''), 13, 20)");
 
                     b.Property<string>("HeaderUrl")
                         .HasColumnType("text");
@@ -207,6 +279,9 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.HasIndex("DiscordUserId")
                         .IsUnique();
 
+                    b.HasIndex("FriendCode")
+                        .IsUnique();
+
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
                         .HasDatabaseName("IX_Users_NormalizedEmail");
@@ -220,6 +295,67 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Users_SteamId");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Persistence.Friendship", b =>
+                {
+                    b.Property<Guid>("FirstId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SecondId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Accepted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("FirstId", "SecondId");
+
+                    b.HasIndex("SecondId");
+
+                    b.ToTable("Friendships", (string)null);
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Persistence.PlayStationTrophies", b =>
+                {
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Bronze")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Gold")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Platinum")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Silver")
+                        .HasColumnType("integer");
+
+                    b.HasKey("GameId");
+
+                    b.ToTable("PlayStationTrophies", (string)null);
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Persistence.Wish", b =>
+                {
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("GameId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("AddedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("OwnerId", "GameId");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("Wishes", (string)null);
                 });
 
             modelBuilder.Entity("GamesBacklog.Infrastructure.Steam.SteamLoginFlow", b =>
@@ -276,6 +412,45 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.HasOne("GamesBacklog.Infrastructure.Identity.BacklogUser", null)
                         .WithMany()
                         .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Persistence.Friendship", b =>
+                {
+                    b.HasOne("GamesBacklog.Infrastructure.Identity.BacklogUser", null)
+                        .WithMany()
+                        .HasForeignKey("FirstId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GamesBacklog.Infrastructure.Identity.BacklogUser", null)
+                        .WithMany()
+                        .HasForeignKey("SecondId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Persistence.PlayStationTrophies", b =>
+                {
+                    b.HasOne("GamesBacklog.Domain.BacklogEntry", null)
+                        .WithOne()
+                        .HasForeignKey("GamesBacklog.Infrastructure.Persistence.PlayStationTrophies", "GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Persistence.Wish", b =>
+                {
+                    b.HasOne("GamesBacklog.Infrastructure.Catalog.CatalogEntry", null)
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GamesBacklog.Infrastructure.Identity.BacklogUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
