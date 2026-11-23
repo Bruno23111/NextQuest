@@ -13,6 +13,7 @@ import { PaginationComponent } from '../../shared/components/pagination.componen
 import { SelectComponent, SelectOption } from '../../shared/components/select.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { BacklogApi } from '../backlog/services/backlog.api';
+import { PsnSyncComponent } from './psn-sync.component';
 
 type Tier = 'bronze' | 'silver' | 'gold' | 'platinum';
 type TrophyCounts = Record<Tier, number>;
@@ -50,6 +51,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
     PaginationComponent,
     SelectComponent,
     StatusBadgeComponent,
+    PsnSyncComponent,
   ],
   template: `
     <main class="nq-page">
@@ -71,6 +73,8 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
 
       <app-feedback-banner tone="error" [message]="error()" [inline]="true" />
       <app-feedback-banner tone="success" [message]="notice()" />
+
+      <app-psn-sync (imported)="clearSearch()" />
 
       <section class="nq-card psn-add-card">
         <div class="section-heading">

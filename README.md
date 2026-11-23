@@ -186,6 +186,7 @@ Preencha as credenciais no arquivo `.env.development.local` sem aspas. O Git ign
 |---|---|
 | Catálogo | `Rawg__ApiKey` |
 | Promoções | `IsThereAnyDeal__ApiKey` |
+| Vídeos | `YouTube__ApiKey` |
 | Login Steam | Use o site em `http://localhost:4201`. O retorno já está configurado no Compose. |
 | Biblioteca e conquistas Steam | `Steam__ApiKey` |
 | Vínculo com Discord | `Discord__ClientId`, `Discord__ClientSecret` e `Discord__RedirectUri`. Cadastre no OAuth2 do Discord a mesma URL de retorno do arquivo. |
@@ -212,6 +213,12 @@ Em **Adicionar jogos em lote**, escolha **Populares** ou **Novidades** e uma qua
 
 Em Promoções, o lote consulta o ranking do IsThereAnyDeal e publica apenas os títulos que têm desconto disponível no Brasil. O lote preserva registros existentes, inclusive ofertas expiradas. Para renovar uma oferta, use a publicação individual.
 
+#### Vídeos de jogos
+
+Habilite a **YouTube Data API v3** no seu projeto Google Cloud e configure a chave em `YouTube__ApiKey` no arquivo de ambiente da API. Em **Administração → Vídeos**, busque vídeos no YouTube ou cole um link, escolha a categoria e, se quiser, vincule um jogo publicado no catálogo. O mesmo vídeo aparece apenas uma vez e pode ser retirado da aba pelo administrador.
+
+A aba **Vídeos** consulta o PostgreSQL para listar e filtrar as publicações. O player do YouTube só é carregado ao clicar em **Assistir**, quando o vídeo permite reprodução integrada. A API atualiza periodicamente os metadados dos vídeos publicados em pequenos lotes e retira vídeos que deixaram de estar disponíveis.
+
 #### Amigos e lista de desejos
 
 Em **Amigos**, copie o seu código para compartilhar ou informe o código de outro jogador para enviar um pedido. Depois que ele aceitar, abra o perfil para ver os jogos marcados como **Jogando**, a biblioteca e a lista de desejos. Somente amigos aceitos têm acesso a esses dados, e as anotações da biblioteca são privadas.
@@ -222,7 +229,15 @@ No catálogo, use **Adicionar aos desejos** para salvar um título. A aba **List
 
 #### PlayStation
 
-A aba **PlayStation** mostra os jogos PlayStation da biblioteca NextQuest, incluindo títulos adicionados pelo catálogo. É possível adicionar um jogo à biblioteca e registrar manualmente os troféus de bronze, prata, ouro e platina por título. A aba usa os dados salvos no PostgreSQL e ainda não sincroniza contas da PSN.
+A aba **PlayStation** mostra os jogos PlayStation da biblioteca NextQuest, incluindo títulos adicionados pelo catálogo. É possível adicionar um jogo e registrar manualmente os troféus por título.
+
+**Sincronizar com a PSN** aceita um token de acesso PSN já emitido com permissão para consultar troféus da própria conta. Use o formulário em HTTPS ou em localhost. O NextQuest usa o token somente na consulta, sem salvá-lo no banco ou no navegador. A prévia fica disponível por dez minutos e mostra até 500 títulos da lista de troféus. Depois que você escolher os títulos e confirmar, o NextQuest salva os jogos e as contagens no PostgreSQL. Novas importações reconhecem o identificador PSN já salvo. Quando houver exatamente um jogo local com o mesmo título e plataforma, o NextQuest aproveita esse registro e preserva seu status e suas anotações.
+
+Para habilitar **Conectar conta PSN**, configure os valores `PsnOAuth__*` de um cliente OAuth que a Sony tenha autorizado a consultar os dados de troféus. Use os endpoints e o escopo fornecidos para esse cliente. A configuração aceita código de autorização com PKCE S256 e, para clientes confidenciais, autenticação `client_secret_basic`.
+
+Registre `https://seu-dominio/api/v1/playstation/sync/oauth/callback` como `PsnOAuth__RedirectUri` e configure `https://seu-dominio/playstation` em `PsnOAuth__WebReturnUrl`. Ambos devem usar a mesma origem HTTPS do frontend. Habilite o proxy de `/api` nessa origem e mantenha parâmetros de callback fora dos logs do proxy. O botão aparece quando a configuração está completa. O login ocorre no domínio da Sony e retorna uma prévia ao NextQuest. O fluxo usa a autorização para uma consulta e descarta os tokens, incluindo eventual token de renovação.
+
+A disponibilidade de um cliente autorizado para o NextQuest ainda precisa ser confirmada com a Sony. Esta etapa consulta a lista de troféus e ainda não sincroniza compras nem horas jogadas.
 
 ### 1. Iniciar serviços de suporte
 

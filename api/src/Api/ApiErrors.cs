@@ -1,5 +1,7 @@
 using FluentValidation;
 using GamesBacklog.Application;
+using GamesBacklog.Infrastructure.PlayStation;
+using GamesBacklog.Infrastructure.Videos;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,6 +39,13 @@ internal sealed class ApiErrors : IExceptionHandler
                 title: "A Steam não disponibilizou estes dados. Verifique a privacidade do perfil e do jogo."),
             SteamGameDataUnavailableException => Results.Problem(statusCode: 503,
                 title: "Dados da Steam indisponíveis. Tente novamente."),
+            PsnSyncException { Failure: PsnFailure.AccessDenied } => Results.Problem(statusCode: 422,
+                title: "A PSN recusou o acesso. Confira se o token está válido e permite consultar troféus."),
+            PsnSyncException { Failure: PsnFailure.RateLimited } => Results.Problem(statusCode: 429,
+                title: "A PSN limitou as consultas. Aguarde antes de tentar novamente."),
+            PsnSyncException => Results.Problem(statusCode: 503,
+                title: "A PSN não respondeu com a biblioteca de troféus. Tente novamente."),
+            YouTubeUnavailableException error => Results.Problem(statusCode: 503, title: error.Message),
             BadHttpRequestException error => Results.Problem(statusCode: error.StatusCode, title: "Requisição inválida."),
             _ => null
         };

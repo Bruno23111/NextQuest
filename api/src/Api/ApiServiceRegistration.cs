@@ -87,6 +87,10 @@ internal static class ApiServiceRegistration
                 ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 8));
             options.AddPolicy("social", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 20));
+            options.AddPolicy("psn", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 8));
+            options.AddPolicy("youtube", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 15));
             options.AddPolicy("catalog", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 45));
         });

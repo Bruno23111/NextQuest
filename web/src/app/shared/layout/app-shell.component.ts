@@ -114,6 +114,12 @@ const TOP_TABS: TopTab[] = [
             <span class="rail__label">Promoções</span>
           </a>
 
+          <a class="rail__item" routerLink="/videos" routerLinkActive="is-active"
+            data-tooltip="Vídeos" (click)="closeMobileMenu()">
+            <span class="ms-icon" aria-hidden="true">play_circle</span>
+            <span class="rail__label">Vídeos</span>
+          </a>
+
           @if (canAdministerCatalog()) {
             <a class="rail__item" routerLink="/admin" routerLinkActive="is-active"
               data-tooltip="Administração" (click)="closeMobileMenu()">

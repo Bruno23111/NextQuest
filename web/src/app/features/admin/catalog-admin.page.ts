@@ -45,6 +45,10 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
               <span class="ms-icon" aria-hidden="true">local_offer</span>
               Promoções
             </a>
+            <a routerLink="/admin/videos" class="nq-tab">
+              <span class="ms-icon" aria-hidden="true">play_circle</span>
+              Vídeos
+            </a>
           </nav>
         </div>
 

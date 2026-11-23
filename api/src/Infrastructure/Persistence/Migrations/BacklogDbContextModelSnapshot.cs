@@ -57,6 +57,10 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.Property<int?>("PlatformId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PsnTrophyId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<int?>("RawgId")
                         .HasColumnType("integer");
 
@@ -71,6 +75,10 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(250)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "PsnTrophyId")
+                        .IsUnique()
+                        .HasFilter("\"PsnTrophyId\" IS NOT NULL");
 
                     b.HasIndex("OwnerId", "CreatedAt", "Id")
                         .IsDescending(false, true, true);
@@ -398,6 +406,51 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.ToTable("SteamLoginFlows");
                 });
 
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Videos.GameVideo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<bool>("CanPlayHere")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RawgId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckedAt");
+
+                    b.HasIndex("PublishedAt");
+
+                    b.HasIndex("RawgId");
+
+                    b.ToTable("GameVideos", (string)null);
+                });
+
             modelBuilder.Entity("GamesBacklog.Domain.BacklogEntry", b =>
                 {
                     b.HasOne("GamesBacklog.Infrastructure.Identity.BacklogUser", null)
@@ -453,6 +506,14 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("GamesBacklog.Infrastructure.Videos.GameVideo", b =>
+                {
+                    b.HasOne("GamesBacklog.Infrastructure.Catalog.CatalogEntry", null)
+                        .WithMany()
+                        .HasForeignKey("RawgId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }

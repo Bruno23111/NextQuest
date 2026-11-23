@@ -43,6 +43,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/social/wishlist.page').then(m => m.WishlistPage),
       },
       {
+        path: 'videos',
+        loadComponent: () => import('./features/videos/videos.page').then(m => m.VideosPage),
+      },
+      {
         path: 'admin',
         canActivate: [() => {
           const router = inject(Router);
@@ -59,6 +63,10 @@ export const routes: Routes = [
           {
             path: 'deals',
             loadComponent: () => import('./features/admin/deals-admin.page').then(m => m.DealsAdminPage),
+          },
+          {
+            path: 'videos',
+            loadComponent: () => import('./features/admin/videos-admin.page').then(m => m.VideosAdminPage),
           },
         ],
       },

@@ -14,6 +14,7 @@ public sealed class BacklogEntry
     public int? RawgId { get; private set; }
     public int? PlatformId { get; private set; }
     public string? CoverUrl { get; private set; }
+    public string? PsnTrophyId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public string? LastCheckpoint { get; private set; }
     public string? NextObjective { get; private set; }
@@ -34,6 +35,12 @@ public sealed class BacklogEntry
         entry.PlatformId = platformId;
         entry.CoverUrl = coverUrl;
         return entry;
+    }
+
+    public void LinkPlayStation(string trophyId, string? coverUrl)
+    {
+        PsnTrophyId = trophyId;
+        CoverUrl ??= coverUrl;
     }
 
     public bool TryUpdate(string? title, string? platform, GameStatus? status)

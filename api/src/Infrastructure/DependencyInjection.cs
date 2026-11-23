@@ -4,7 +4,9 @@ using GamesBacklog.Infrastructure.Discord;
 using GamesBacklog.Infrastructure.Deals;
 using GamesBacklog.Infrastructure.Identity;
 using GamesBacklog.Infrastructure.Persistence;
+using GamesBacklog.Infrastructure.PlayStation;
 using GamesBacklog.Infrastructure.Steam;
+using GamesBacklog.Infrastructure.Videos;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +44,36 @@ public static class DependencyInjection
         services.AddScoped<IUserProfileStore, UserProfileStore>();
         services.AddScoped<SocialStore>();
         services.AddScoped<PlayStationStore>();
+        services.AddScoped<GameVideoStore>();
+        services.AddHostedService<YouTubeRefreshService>();
+        services.AddOptions<YouTubeOptions>().BindConfiguration("YouTube");
+        services.AddHttpClient<YouTubeClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://www.googleapis.com/youtube/v3/");
+            client.Timeout = TimeSpan.FromSeconds(8);
+            client.MaxResponseContentBufferSize = 512 * 1024;
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false })
+            .RemoveAllLoggers();
+        services.AddOptions<PsnOAuthOptions>().BindConfiguration("PsnOAuth");
+        services.AddHttpClient<PsnOAuthClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(8);
+            client.MaxResponseContentBufferSize = 64 * 1024;
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false
+        }).RemoveAllLoggers();
+        services.AddHttpClient<PsnTrophyClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://m.np.playstation.com/api/trophy/");
+            client.Timeout = TimeSpan.FromSeconds(8);
+            client.MaxResponseContentBufferSize = 2 * 1024 * 1024;
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false
+        }).RemoveAllLoggers();
 
         services.AddMemoryCache();
         services.AddOptions<IsThereAnyDealOptions>().BindConfiguration("IsThereAnyDeal");

@@ -2,6 +2,7 @@ using GamesBacklog.Domain;
 using GamesBacklog.Infrastructure.Deals;
 using GamesBacklog.Infrastructure.Identity;
 using GamesBacklog.Infrastructure.Steam;
+using GamesBacklog.Infrastructure.Videos;
 using Microsoft.EntityFrameworkCore;
 
 namespace GamesBacklog.Infrastructure.Persistence;
@@ -21,6 +22,18 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        model.Entity<GameVideo>(video =>
+        {
+            video.ToTable("GameVideos");
+            video.HasKey(x => x.Id);
+            video.Property(x => x.Id).HasMaxLength(11);
+            video.Property(x => x.Category).HasMaxLength(16);
+            video.HasIndex(x => x.CheckedAt);
+            video.HasIndex(x => x.PublishedAt);
+            video.HasOne<GamesBacklog.Infrastructure.Catalog.CatalogEntry>().WithMany()
+                .HasForeignKey(x => x.RawgId).OnDelete(DeleteBehavior.SetNull);
+        });
+
         model.Entity<PlayStationTrophies>(progress =>
         {
             progress.ToTable("PlayStationTrophies");
@@ -111,6 +124,9 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
             entry.Property(x => x.NextObjective).HasMaxLength(500);
             entry.Property(x => x.Notes).HasMaxLength(2000);
             entry.Property(x => x.Platform).HasMaxLength(100).IsRequired();
+            entry.Property(x => x.PsnTrophyId).HasMaxLength(32);
+            entry.HasIndex(x => new { x.OwnerId, x.PsnTrophyId }).IsUnique()
+                .HasFilter("\"PsnTrophyId\" IS NOT NULL");
             entry.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
             entry.HasOne<BacklogUser>().WithMany().HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Cascade);
             entry.HasIndex(x => new { x.OwnerId, x.CreatedAt, x.Id }).IsDescending(false, true, true);

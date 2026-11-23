@@ -48,6 +48,7 @@ public static class ApiHost
         api.MapUserProfile();
         api.MapSocial();
         api.MapPlayStation();
+        api.MapGameVideos();
         api.MapDiscord();
     }
 }
