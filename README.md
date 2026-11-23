@@ -1,5 +1,7 @@
 # NextQuest
 
+![Banner do backlog do NextQuest](web/public/jogando-coelho.webp)
+
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/Bruno23111/Gamesbacklog/releases)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-13.0-239120?logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
@@ -9,15 +11,21 @@
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-v1-85EA2D?logo=openapi-initiative&logoColor=black)](specs/openapi-v1.json)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](.github/workflows/api.yml)
 
-> **NextQuest** é uma plataforma pessoal e privada de gerenciamento de backlog de jogos, oferecendo suporte a cadastro manual e importação enriquecida de metadados através da API da RAWG.
+> **NextQuest** é uma plataforma para organizar sua biblioteca e seu backlog de jogos, acompanhar o que está jogando e descobrir novos títulos e promoções.
 
 O repositório adota **desenvolvimento orientado a especificações (Spec-Driven)** com arquitetura limpa em **ASP.NET Core 10**, contrato OpenAPI versionado e especificação completa de cliente **Flutter para Android**.
 
 ---
 
-### 🏷️ Tags & Tópicos do Projeto
+### 🏷️ Tópicos do GitHub
 
-`games-backlog` • `dotnet-10` • `csharp` • `aspnetcore` • `minimal-apis` • `postgresql` • `entity-framework-core` • `rawg-api` • `docker` • `flutter` • `riverpod` • `clean-architecture` • `openapi` • `spec-kit`
+Os tópicos do repositório aparecem como etiquetas azuis no GitHub: `nextquest` · `games-backlog` · `game-library` · `game-tracker` · `gaming` · `dotnet` · `aspnet-core` · `clean-architecture` · `entity-framework-core` · `postgresql` · `angular` · `steam` · `discord` · `rawg` · `isthereanydeal` · `openapi` · `spec-driven-development`.
+
+### 🖼️ Identidade visual
+
+| Mascote NextQuest | Tela de login |
+|---|---|
+| ![Mascote coelho do NextQuest](web/public/nextquest-coelho.png) | ![Ilustração da tela de login](web/public/login-coelho-hd.webp) |
 
 ---
 
