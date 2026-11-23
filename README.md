@@ -21,11 +21,25 @@ O repositório adota **desenvolvimento orientado a especificações (Spec-Driven
 
 Os tópicos do repositório aparecem como etiquetas azuis no GitHub: `nextquest` · `games-backlog` · `game-library` · `game-tracker` · `gaming` · `dotnet` · `aspnet-core` · `clean-architecture` · `entity-framework-core` · `postgresql` · `angular` · `steam` · `discord` · `rawg` · `isthereanydeal` · `openapi` · `spec-driven-development`.
 
-### 🖼️ Identidade visual
+## 🖥️ Telas do sistema
 
-| Mascote NextQuest | Tela de login |
-|---|---|
-| ![Mascote coelho do NextQuest](web/public/nextquest-coelho.png) | ![Ilustração da tela de login](web/public/login-coelho-hd.webp) |
+Capturas do frontend NextQuest com dados demonstrativos.
+
+### Biblioteca
+
+![Biblioteca, fila e progresso de jogos](docs/screenshots/biblioteca.png)
+
+### Catálogo
+
+![Busca e catálogo de jogos](docs/screenshots/catalogo.png)
+
+### Promoções
+
+![Tela de promoções de jogos](docs/screenshots/promocoes.png)
+
+### Login
+
+![Tela de login do NextQuest](docs/screenshots/login.png)
 
 ---
 
