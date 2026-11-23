@@ -82,6 +82,8 @@ export interface CatalogGame {
   title: string;
   coverUrl: string | null;
   platforms: CatalogPlatform[];
+  metacriticScore?: number | null;
+  metacriticUrl?: string | null;
 }
 
 export interface SteamLibraryGame {
@@ -116,6 +118,7 @@ export interface SteamGameAchievements {
 }
 
 export interface UserProfile {
+  steamLinked?: boolean;
   displayName: string;
   bio: string | null;
   avatarUrl: string | null;

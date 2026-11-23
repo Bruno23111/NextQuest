@@ -22,7 +22,9 @@ export class AuthStore {
   private readonly router = inject(Router);
   private readonly apiBase = inject(API_BASE_URL);
 
-  private readonly sessionSignal = signal<SessionResponse | null>(loadStoredSession());
+  private readonly restored = loadStoredSession();
+  private rememberSession = this.restored?.remember ?? true;
+  private readonly sessionSignal = signal<SessionResponse | null>(this.restored?.session ?? null);
 
   readonly session = this.sessionSignal.asReadonly();
   readonly isAuthenticated = computed(() => Boolean(this.sessionSignal()?.accessToken));
@@ -35,10 +37,10 @@ export class AuthStore {
     return this.sessionSignal()?.refreshToken ?? null;
   }
 
-  login(payload: CredentialsRequest): Observable<SessionResponse> {
+  login(payload: CredentialsRequest, remember = true): Observable<SessionResponse> {
     return this.http
       .post<SessionResponse>(`${this.apiBase}/auth/login`, payload)
-      .pipe(tap((session) => this.setSession(session)));
+      .pipe(tap((session) => this.setSession(session, remember)));
   }
 
   register(payload: CredentialsRequest): Observable<void> {
@@ -72,7 +74,7 @@ export class AuthStore {
       .pipe(tap((session) => this.setSession(session)));
   }
 
-  async beginSteamFlow(mode: SteamFlowMode): Promise<string> {
+  async beginSteamFlow(mode: SteamFlowMode, remember = true): Promise<string> {
     const { codeVerifier, codeChallenge } = await createPkcePair();
     const endpoint = mode === 'link' ? `${this.apiBase}/auth/steam/link/start` : `${this.apiBase}/auth/steam/start`;
     const body: StartSteamRequest = { codeChallenge };
@@ -88,15 +90,16 @@ export class AuthStore {
       state: response.state,
       codeVerifier,
       mode,
+      remember,
     });
 
     return response.authorizationUrl;
   }
 
-  redeemSteamLogin(payload: RedeemSteamRequest): Observable<SessionResponse> {
+  redeemSteamLogin(payload: RedeemSteamRequest, remember = true): Observable<SessionResponse> {
     return this.http
       .post<SessionResponse>(`${this.apiBase}/auth/steam/token`, payload)
-      .pipe(tap((session) => this.setSession(session)));
+      .pipe(tap((session) => this.setSession(session, remember)));
   }
 
   redeemSteamLink(payload: RedeemSteamRequest): Observable<void> {
@@ -106,24 +109,34 @@ export class AuthStore {
   logout(redirectToLogin = true): void {
     this.sessionSignal.set(null);
     localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
     if (redirectToLogin) {
       void this.router.navigate(['/auth/login']);
     }
   }
 
-  private setSession(session: SessionResponse): void {
+  private setSession(session: SessionResponse, remember = this.rememberSession): void {
+    this.rememberSession = remember;
     this.sessionSignal.set(session);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+
+    const storage = remember ? localStorage : sessionStorage;
+    const otherStorage = remember ? sessionStorage : localStorage;
+    storage.setItem(STORAGE_KEY, JSON.stringify(session));
+    otherStorage.removeItem(STORAGE_KEY);
   }
 }
 
-function loadStoredSession(): SessionResponse | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SessionResponse;
-    return parsed?.accessToken && parsed?.refreshToken ? parsed : null;
-  } catch {
-    return null;
+function loadStoredSession(): { session: SessionResponse; remember: boolean } | null {
+  for (const remember of [false, true]) {
+    try {
+      const raw = (remember ? localStorage : sessionStorage).getItem(STORAGE_KEY);
+      if (!raw) continue;
+
+      const session = JSON.parse(raw) as SessionResponse;
+      if (session?.accessToken && session?.refreshToken) return { session, remember };
+    } catch {
+      // Try the other storage when the previous session cannot be restored.
+    }
   }
+  return null;
 }

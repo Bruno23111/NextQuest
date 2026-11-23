@@ -83,6 +83,34 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.ToTable("Backlog");
                 });
 
+            modelBuilder.Entity("GamesBacklog.Domain.GameReview", b =>
+                {
+                    b.Property<int>("RawgId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("RawgId", "AuthorId");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("RawgId", "UpdatedAt", "AuthorId");
+
+                    b.ToTable("GameReviews");
+                });
+
             modelBuilder.Entity("GamesBacklog.Infrastructure.Identity.BacklogUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -101,6 +129,18 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DiscordAvatar")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DiscordName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DiscordUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DiscordWebhookSecret")
                         .HasColumnType("text");
 
                     b.Property<string>("DisplayName")
@@ -164,6 +204,9 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DiscordUserId")
+                        .IsUnique();
+
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
                         .HasDatabaseName("IX_Users_NormalizedEmail");
@@ -224,6 +267,15 @@ namespace GamesBacklog.Infrastructure.Persistence.Migrations
                     b.HasOne("GamesBacklog.Infrastructure.Identity.BacklogUser", null)
                         .WithMany()
                         .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GamesBacklog.Domain.GameReview", b =>
+                {
+                    b.HasOne("GamesBacklog.Infrastructure.Identity.BacklogUser", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

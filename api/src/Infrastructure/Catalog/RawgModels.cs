@@ -8,7 +8,9 @@ internal sealed record RawgGame(
     int Id,
     string? Name,
     [property: JsonPropertyName("background_image")] string? BackgroundImage,
-    RawgPlatformReference?[]? Platforms);
+    RawgPlatformReference?[]? Platforms,
+    int? Metacritic,
+    [property: JsonPropertyName("metacritic_url")] string? MetacriticUrl);
 
 internal sealed record RawgPlatformReference(RawgPlatform? Platform);
 

@@ -1,4 +1,4 @@
-import { catchError, of, startWith, switchMap } from 'rxjs';
+import { catchError, of, startWith, Subscription, switchMap } from 'rxjs';
 import { PlayPlanApi } from '../services/play-plan.api';
 import { PlayQueueComponent } from '../components/play-queue.component';
 import { DatePipe } from '@angular/common';
@@ -19,6 +19,7 @@ import {
   BacklogGame,
   GameStatus,
   SteamGameAchievements,
+  SteamLibraryGame,
 } from '../../../core/models/api.models';
 import { FeedbackBannerComponent } from '../../../shared/components/feedback-banner.component';
 import { GameCoverComponent } from '../../../shared/components/game-cover.component';
@@ -30,7 +31,7 @@ import { buildActivityHeatmap } from '../utils/activity-heatmap';
 
 interface StatusTab {
   label: string;
-  value: GameStatus | null;
+  value: GameStatus | 'steam' | null;
   icon: string;
 }
 
@@ -40,6 +41,7 @@ const STATUS_TABS: StatusTab[] = [
   { label: 'Planejado', value: 'planned', icon: 'bookmark_border' },
   { label: 'Zerado', value: 'completed', icon: 'check_circle' },
   { label: 'Abandonado', value: 'dropped', icon: 'cancel' },
+  { label: 'Steam', value: 'steam', icon: 'sports_esports' },
 ];
 
 const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -132,7 +134,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
                 </span>
                 <h1>Comece sua coleção de jogos</h1>
                 <p>
-                  Adicione títulos manualmente ou importe do catálogo RAWG para acompanhar cada
+                  Adicione títulos manualmente ou pelo catálogo para acompanhar cada
                   etapa da sua jornada.
                 </p>
               </div>
@@ -140,7 +142,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
               <div class="nq-hero-banner__actions">
                 <a routerLink="/catalog" class="nq-btn nq-btn--secondary">
                   <span class="ms-icon" aria-hidden="true">travel_explore</span>
-                  Explorar RAWG
+                  Explorar Catálogo
                 </a>
                 <button type="button" class="nq-btn nq-btn--primary" (click)="openCreateModal()">
                   <span class="ms-icon" aria-hidden="true">add</span>
@@ -307,16 +309,17 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
         </article>
       </section>
 
-      <app-play-queue />
+      <app-play-queue [catalog]="games()" />
 
       <section id="biblioteca-completa" class="library-section">
         <div class="toolbar">
-          <div class="nq-tabs" role="tablist" aria-label="Filtrar por status">
+          <div class="nq-tabs" role="group" aria-label="Filtrar biblioteca">
             @for (tab of statusTabs; track tab.label) {
               <button
                 type="button"
                 class="nq-tab"
-                [class.is-active]="selectedStatus() === tab.value"
+                [class.is-active]="libraryFilter() === tab.value"
+                [attr.aria-pressed]="libraryFilter() === tab.value"
                 (click)="selectStatus(tab.value)"
               >
                 <span class="ms-icon" aria-hidden="true">{{ tab.icon }}</span>
@@ -363,47 +366,60 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
 
         <app-feedback-banner [message]="errorMessage()" tone="error" />
 
-        @if (loading()) {
+        @if (showSteamGames() && steamError()) {
+          <app-feedback-banner [message]="steamError()" tone="error" />
+        }
+        @if (loading() || (showSteamGames() && steamLoading())) {
           <div class="nq-skeleton-grid" aria-label="Carregando biblioteca">
             @for (item of skeletonItems; track item) {
               <div class="nq-skeleton-card"></div>
             }
           </div>
-        } @else if (games().length === 0) {
+        } @else if (libraryItems().length === 0) {
           <div class="nq-empty">
             <h3>Nenhum jogo encontrado</h3>
-            <p>Adicione um título manualmente ou importe diretamente do catálogo RAWG.</p>
+            @if (libraryFilter() === 'steam') {
+              @if (steamNeedsLink()) {
+                <p>Vincule sua conta Steam para ver seus jogos.</p>
+                <a routerLink="/profile" class="nq-btn nq-btn--secondary">Abrir perfil</a>
+              } @else if (!steamError()) {
+                <p>Tente outro termo de busca ou confira a visibilidade da sua biblioteca na Steam.</p>
+              }
+            } @else {
+            <p>Adicione um título manualmente ou diretamente do catálogo.</p>
             <div class="empty-actions">
               <button type="button" class="nq-btn nq-btn--primary" (click)="openCreateModal()">
                 <span class="ms-icon" aria-hidden="true">add</span>
                 Novo Jogo
               </button>
-              <a routerLink="/catalog" class="nq-btn nq-btn--secondary">Explorar Catálogo RAWG</a>
+              <a routerLink="/catalog" class="nq-btn nq-btn--secondary">Explorar Catálogo</a>
             </div>
+            }
           </div>
         } @else {
           @if (viewMode() === 'grid') {
             <div class="nq-poster-grid">
-              @for (game of games(); track game.id) {
-                <a class="nq-poster-card" [routerLink]="['/backlog', game.id]">
+              @for (game of libraryItems(); track game.key) {
+                <a class="nq-poster-card" [routerLink]="game.route">
                   <app-game-cover
                     [src]="game.coverUrl"
+                    [fallbackSrc]="game.fallbackUrl"
                     [title]="game.title"
                     aspectRatio="3 / 4"
                     scrim="strong"
                     [zoomOnHover]="true"
                   >
                     <div class="nq-poster-card__top">
-                      <app-status-badge [status]="game.status" />
-                      @if (game.rawgId) {
-                        <span class="nq-chip">RAWG</span>
+                      @if (game.status; as status) { <app-status-badge [status]="status" /> }
+                      @if (game.source; as source) {
+                        <span class="nq-chip">{{ source }}</span>
                       }
                     </div>
 
                     <div class="nq-poster-card__overlay">
                       <h3 class="nq-poster-card__title">{{ game.title }}</h3>
                       <div class="nq-poster-card__footer">
-                        <span class="nq-chip">{{ game.platform }}</span>
+                        <span class="nq-chip">{{ game.playtime ?? game.platform }}</span>
                         <span class="ms-icon" aria-hidden="true">arrow_outward</span>
                       </div>
                     </div>
@@ -413,11 +429,12 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
             </div>
           } @else {
             <div class="nq-shelf-list">
-              @for (game of games(); track game.id) {
-                <a class="nq-shelf-row" [routerLink]="['/backlog', game.id]">
+              @for (game of libraryItems(); track game.key) {
+                <a class="nq-shelf-row" [routerLink]="game.route">
                   <div class="nq-shelf-row__thumb">
                     <app-game-cover
                       [src]="game.coverUrl"
+                    [fallbackSrc]="game.fallbackUrl"
                       [title]="game.title"
                       aspectRatio="3 / 4"
                       scrim="none"
@@ -425,12 +442,13 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
                   </div>
                   <div class="nq-shelf-row__main">
                     <strong>{{ game.title }}</strong>
-                    <small>{{ game.platform }}</small>
+                    <small>{{ game.platform }} @if (game.playtime) { · {{ game.playtime }} }</small>
                   </div>
                   <span class="nq-chip nq-shelf-row__extra">{{ game.platform }}</span>
-                  <app-status-badge [status]="game.status" />
+                  @if (game.status; as status) { <app-status-badge [status]="status" /> }
                   <span class="nq-shelf-row__date nq-shelf-row__extra">
-                    {{ game.createdAt | date: 'dd/MM/yyyy' }}
+                    @if (game.createdAt) { {{ game.createdAt | date: 'dd/MM/yyyy' }} }
+                    @else { {{ game.playtime }} }
                   </span>
                   <span class="ms-icon" aria-hidden="true">chevron_right</span>
                 </a>
@@ -440,7 +458,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
 
           <app-pagination
             [page]="page()"
-            [hasMore]="hasMore()"
+            [hasMore]="libraryHasMore()"
             (pageChange)="goToPage($event)"
           />
         }
@@ -632,6 +650,39 @@ export class BacklogListPageComponent implements OnInit {
   protected readonly statusTabs = STATUS_TABS;
   protected readonly skeletonItems = SKELETON_ITEMS;
 
+  protected readonly libraryFilter = signal<GameStatus | 'steam' | null>(null);
+  protected readonly showSteamGames = computed(() => this.libraryFilter() === null || this.libraryFilter() === 'steam');
+  protected readonly steamLoading = signal(true);
+  protected readonly steamNeedsLink = signal(false);
+  protected readonly steamError = signal<string | null>(null);
+  private readonly steamGames = signal<SteamLibraryGame[]>([]);
+  private readonly appliedSearch = signal('');
+  private readonly filteredSteamGames = computed(() => {
+    if (!this.showSteamGames()) return [];
+    const term = this.appliedSearch().trim().toLowerCase();
+    return this.steamGames().filter(game => game.name.toLowerCase().includes(term));
+  });
+  private readonly steamPageSize = 20;
+  protected readonly libraryHasMore = computed(() =>
+    (this.libraryFilter() !== 'steam' && this.hasMore()) ||
+    this.filteredSteamGames().length > this.page() * this.steamPageSize,
+  );
+  protected readonly libraryItems = computed(() => {
+    const backlog = this.libraryFilter() === 'steam' ? [] : this.games().map(game => ({
+      key: game.id, route: ['/backlog', game.id], title: game.title, coverUrl: game.coverUrl,
+      fallbackUrl: null, platform: game.platform, status: game.status, source: game.rawgId ? 'RAWG' : null,
+      createdAt: game.createdAt, playtime: null,
+    }));
+    const start = (this.page() - 1) * this.steamPageSize;
+    const steam = this.filteredSteamGames().slice(start, start + this.steamPageSize).map(game => ({
+      key: 'steam-' + game.appId, route: ['/steam', game.appId], title: game.name,
+      coverUrl: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.appId}/library_600x900.jpg`,
+      fallbackUrl: game.iconUrl, platform: 'Steam', status: null, source: 'Steam',
+      createdAt: null, playtime: `${(game.playtimeForeverMinutes / 60).toFixed(1)} h`,
+    }));
+
+    return [...backlog, ...steam];
+  });
   protected readonly games = signal<BacklogGame[]>([]);
   protected readonly steamAchievements = signal<SteamGameAchievements | null>(null);
   protected readonly selectedStatus = signal<GameStatus | null>(null);
@@ -706,20 +757,15 @@ export class BacklogListPageComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         const rawStatus = params.get('status');
-        const parsedStatus: GameStatus | null =
-          rawStatus === 'planned' ||
-          rawStatus === 'playing' ||
-          rawStatus === 'completed' ||
-          rawStatus === 'dropped'
-            ? rawStatus
-            : null;
+        const filter = params.get('collection') === 'steam' ? 'steam'
+          : rawStatus === 'planned' || rawStatus === 'playing' || rawStatus === 'completed' || rawStatus === 'dropped'
+            ? rawStatus : null;
 
         this.showCreate.set(params.get('novo') === '1');
-
-        const statusChanged = this.selectedStatus() !== parsedStatus;
-        if (!this.initialized || statusChanged) {
+        if (!this.initialized || this.libraryFilter() !== filter) {
           this.initialized = true;
-          this.selectedStatus.set(parsedStatus);
+          this.libraryFilter.set(filter);
+          this.selectedStatus.set(filter === 'steam' ? null : filter);
           this.page.set(1);
           this.load();
         }
@@ -760,18 +806,19 @@ export class BacklogListPageComponent implements OnInit {
     }
   }
 
-  protected selectStatus(status: GameStatus | null): void {
-    this.selectedStatus.set(status);
-    this.page.set(1);
+  protected selectStatus(filter: GameStatus | 'steam' | null): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { status: status ?? null },
+      queryParams: {
+        status: filter === 'steam' ? null : filter,
+        collection: filter === 'steam' ? 'steam' : null,
+      },
       queryParamsHandling: 'merge',
     });
-    this.load();
   }
 
   protected applySearch(): void {
+    this.appliedSearch.set(this.searchTerm);
     this.page.set(1);
     this.load();
   }
@@ -812,6 +859,8 @@ export class BacklogListPageComponent implements OnInit {
       .subscribe({
         next: (lib) => {
           const games = [...(lib.games ?? [])];
+          this.steamGames.set(games);
+          this.steamLoading.set(false);
           if (games.length === 0) return;
 
           games.sort((a, b) => {
@@ -833,17 +882,29 @@ export class BacklogListPageComponent implements OnInit {
               },
             });
         },
-        error: () => {
-          // Silencia erro quando conta Steam não está vinculada.
+        error: error => {
+          const problem = parseApiError(error);
+          this.steamNeedsLink.set(problem.status === 409);
+          if (!this.steamNeedsLink()) this.steamError.set(problem.message);
+          this.steamLoading.set(false);
         },
       });
   }
 
+  private backlogRequest?: Subscription;
+
   private load(): void {
+    this.backlogRequest?.unsubscribe();
+    this.errorMessage.set(null);
+    if (this.libraryFilter() === 'steam') {
+      this.loading.set(false);
+      return;
+    }
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    this.api.list(this.searchTerm, this.selectedStatus(), this.page()).subscribe({
+    this.backlogRequest = this.api.list(this.appliedSearch(), this.selectedStatus(), this.page())
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.games.set(res.items);
         this.hasMore.set(res.hasMore);

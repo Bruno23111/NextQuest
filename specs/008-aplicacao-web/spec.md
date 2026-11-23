@@ -35,3 +35,7 @@ Construir a aplicação web oficial do **NextQuest** em **Angular** (em `web/`),
 - Erros da API (`ProblemDetails` / `HttpValidationProblemDetails`) são exibidos de forma clara ao usuário em português.
 - O layout segue fielmente o template Dribbble #26698011 em desktop e permanece responsivo em telas menores.
 - O build de produção (`ng build`) e os testes automatizados do frontend executam sem erros.
+
+### Lembrar de mim
+
+No login por e-mail ou Steam, a opção Lembrar de mim mantém a sessão neste navegador enquanto a renovação for válida. Desmarcar mantém a sessão somente na aba. A renovação respeita a escolha e sair da conta limpa a sessão.

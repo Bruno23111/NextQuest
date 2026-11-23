@@ -75,6 +75,8 @@ internal static class ApiServiceRegistration
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.AddPolicy("auth", context => Limit(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 30));
+            options.AddPolicy("discord", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 8));
             options.AddPolicy("catalog", context => Limit(context.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown", 45));
         });

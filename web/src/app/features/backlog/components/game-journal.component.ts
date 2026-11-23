@@ -2,15 +2,20 @@ import { Component, DestroyRef, effect, inject, input, signal } from '@angular/c
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { parseApiError } from '../../../core/errors/problem-details';
+import { FeedbackBannerComponent } from '../../../shared/components/feedback-banner.component';
 import { GameJournal, PlayPlanApi } from '../services/play-plan.api';
 
 @Component({
   selector: 'app-game-journal',
-  imports: [FormsModule],
+  standalone: true,
+  imports: [FormsModule, FeedbackBannerComponent],
   template: `
-    <section class="nq-card">
+    <section class="nq-card journal-card">
       <h2>Diário de progresso</h2>
-      @if (error()) { <p role="alert">{{ error() }}</p> }
+      <app-feedback-banner [message]="error()" tone="error" />
+      @if (saved()) {
+        <app-feedback-banner message="Diário salvo." tone="success" />
+      }
       @if (journal(); as draft) {
         <form (ngSubmit)="save(draft)">
           <fieldset [disabled]="busy()">
@@ -23,18 +28,27 @@ import { GameJournal, PlayPlanApi } from '../services/play-plan.api';
             <label class="nq-field">Notas
               <textarea name="notes" [(ngModel)]="draft.notes" maxlength="2000" rows="4"></textarea>
             </label>
-            <button type="submit" class="nq-btn nq-btn--primary">Salvar diário</button>
+            <div>
+              <button type="submit" class="nq-btn nq-btn--primary">
+                <span class="ms-icon" aria-hidden="true">save</span>
+                Salvar diário
+              </button>
+            </div>
           </fieldset>
         </form>
-        @if (saved()) { <p role="status">Diário salvo.</p> }
       } @else if (busy()) {
-        <p>Carregando diário…</p>
+        <p class="journal-muted">Carregando diário…</p>
       } @else {
         <button type="button" class="nq-btn nq-btn--secondary" (click)="reload()">Tentar novamente</button>
       }
     </section>
   `,
-  styles: `fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }`,
+  styles: `
+    .journal-card { display: flex; flex-direction: column; gap: 14px; }
+    .journal-card h2 { margin: 0; font-size: 1.15rem; }
+    .journal-muted { margin: 0; color: var(--text-muted); font-size: 0.88rem; }
+    fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }
+  `,
 })
 export class GameJournalComponent {
   readonly gameId = input.required<string>();

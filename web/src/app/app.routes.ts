@@ -23,6 +23,10 @@ export const routes: Routes = [
           import('./features/catalog/catalog.routes').then((m) => m.CATALOG_ROUTES),
       },
       {
+        path: 'deals',
+        loadComponent: () => import('./features/deals/deals.page').then(m => m.DealsPageComponent),
+      },
+      {
         path: 'steam',
         loadChildren: () => import('./features/steam/steam.routes').then((m) => m.STEAM_ROUTES),
       },

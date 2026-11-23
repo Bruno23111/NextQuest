@@ -6,6 +6,7 @@ export interface PendingSteamFlow {
   state: string;
   codeVerifier: string;
   mode: SteamFlowMode;
+  remember?: boolean;
 }
 
 export async function createPkcePair(): Promise<{ codeVerifier: string; codeChallenge: string }> {

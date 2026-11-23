@@ -13,6 +13,7 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
     internal const string SteamUserIndex = "IX_Users_SteamId";
     internal const string SteamNonceIndex = "IX_SteamLoginFlows_Nonce";
 
+    public DbSet<GameReview> GameReviews => Set<GameReview>();
     public DbSet<BacklogEntry> Backlog => Set<BacklogEntry>();
     public DbSet<BacklogUser> Users => Set<BacklogUser>();
     public DbSet<SteamLoginFlow> SteamLoginFlows => Set<SteamLoginFlow>();
@@ -29,6 +30,7 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
             user.HasIndex(x => x.NormalizedEmail).IsUnique().HasDatabaseName(EmailIndex);
             user.HasIndex(x => x.NormalizedUserName).IsUnique().HasDatabaseName(UserNameIndex);
             user.Property(x => x.SteamId).HasMaxLength(17);
+            user.HasIndex(x => x.DiscordUserId).IsUnique();
             user.Property(x => x.PlayQueue).HasDefaultValue(Array.Empty<Guid>());
             user.HasIndex(x => x.SteamId).IsUnique().HasDatabaseName(SteamUserIndex);
             user.Property(x => x.DisplayName).HasMaxLength(60);
@@ -47,6 +49,15 @@ public sealed class BacklogDbContext(DbContextOptions<BacklogDbContext> options)
             flow.Property(x => x.Nonce).HasMaxLength(255);
             flow.HasIndex(x => x.Nonce).IsUnique().HasDatabaseName(SteamNonceIndex);
             flow.HasIndex(x => x.ExpiresAt);
+        });
+
+        model.Entity<GameReview>(review =>
+        {
+            review.HasKey(x => new { x.RawgId, x.AuthorId });
+            review.Property(x => x.Text).HasMaxLength(2000).IsRequired();
+            review.HasIndex(x => new { x.RawgId, x.UpdatedAt, x.AuthorId });
+            review.HasOne<BacklogUser>().WithMany().HasForeignKey(x => x.AuthorId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         model.Entity<BacklogEntry>(entry =>

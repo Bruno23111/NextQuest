@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../../core/auth/auth.store';
@@ -23,7 +23,11 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
             <span class="ms-icon" aria-hidden="true">sports_esports</span>
             Integração Steam
           </span>
-          <h1 class="steam-title">Biblioteca Steam</h1>
+          @if (embedded()) {
+            <h2 class="steam-title">Biblioteca Steam</h2>
+          } @else {
+            <h1 class="steam-title">Biblioteca Steam</h1>
+          }
           <p>Consulte seus jogos da Steam, horas jogadas e progresso de conquistas.</p>
         </div>
 
@@ -122,12 +126,12 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
             {{ linking() ? 'Redirecionando...' : 'Vincular conta Steam' }}
           </button>
         </div>
-      } @else if (filteredGames().length === 0) {
+      } @else if (!errorMessage() && filteredGames().length === 0) {
         <div class="nq-empty">
           <h3>Nenhum jogo encontrado</h3>
           <p>Tente ajustar o filtro de busca.</p>
         </div>
-      } @else {
+      } @else if (!errorMessage()) {
         @if (viewMode() === 'grid') {
           <div class="nq-poster-grid">
             @for (game of pageItems(); track game.appId) {
@@ -245,6 +249,7 @@ const SKELETON_ITEMS = [0, 1, 2, 3, 4, 5, 6, 7];
   `,
 })
 export class SteamLibraryPageComponent implements OnInit {
+  readonly embedded = input(false);
   private readonly api = inject(SteamApi);
   private readonly auth = inject(AuthStore);
 
@@ -297,7 +302,7 @@ export class SteamLibraryPageComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         const parsed = parseApiError(err);
-        if (parsed.status === 403 || parsed.status === 404 || parsed.status === 409) {
+        if (parsed.status === 409) {
           this.needsLink.set(true);
         } else {
           this.errorMessage.set(parsed.message);

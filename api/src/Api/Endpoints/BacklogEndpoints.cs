@@ -35,10 +35,17 @@ internal static class BacklogEndpoints
         api.MapGet("/catalog/games", Search).WithName("SearchCatalog").WithTags("Catálogo")
             .RequireAuthorization().RequireRateLimiting("catalog").ProducesValidationProblem()
             .ProducesProblem(503).ProducesProblem(429).ProducesProblem(401);
+        api.MapGet("/catalog/games/{rawgId:int:min(1)}", FindCatalogGame)
+            .WithName("FindCatalogGame").WithTags("Catálogo")
+            .RequireAuthorization().RequireRateLimiting("catalog")
+            .ProducesProblem(401).ProducesProblem(404).ProducesProblem(429).ProducesProblem(503);
         api.MapGet("/catalog/popular", Popular).WithName("PopularCatalog").WithTags("Catálogo")
             .RequireAuthorization().RequireRateLimiting("catalog").ProducesValidationProblem()
             .ProducesProblem(503).ProducesProblem(429).ProducesProblem(401);
     }
+
+    private static async Task<Ok<CatalogGame>> FindCatalogGame(int rawgId, IGameCatalog catalog, CancellationToken ct) =>
+        TypedResults.Ok(await catalog.Find(rawgId, ct) ?? throw new GameNotFoundException());
 
     private static async Task<Ok<PagedResult<CatalogGame>>> Popular(IPopularGameCatalog catalog,
         CancellationToken ct, [FromQuery] int page = 1) => TypedResults.Ok(await catalog.Popular(page, ct));

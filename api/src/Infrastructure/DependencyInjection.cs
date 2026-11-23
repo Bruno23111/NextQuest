@@ -1,5 +1,7 @@
 using GamesBacklog.Application;
 using GamesBacklog.Infrastructure.Catalog;
+using GamesBacklog.Infrastructure.Discord;
+using GamesBacklog.Infrastructure.Deals;
 using GamesBacklog.Infrastructure.Identity;
 using GamesBacklog.Infrastructure.Persistence;
 using GamesBacklog.Infrastructure.Steam;
@@ -21,9 +23,32 @@ public static class DependencyInjection
             config.GetConnectionString("Backlog")
             ?? throw new InvalidOperationException("Configure ConnectionStrings:Backlog.")));
 
+        services.AddOptions<DiscordOAuthOptions>().BindConfiguration("Discord");
+        services.AddHttpClient("Discord", client =>
+        {
+            client.BaseAddress = new Uri("https://discord.com/api/v10/");
+            client.Timeout = TimeSpan.FromSeconds(8);
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false
+        }).RemoveAllLoggers()
+            .AddTypedClient<IDiscordSharing, DiscordSharing>()
+            .AddTypedClient<IDiscordAccountLink, DiscordAccountLink>();
+
         services.AddScoped<IBacklogStore, BacklogStore>();
+        services.AddScoped<IGameReviewStore, GameReviewStore>();
         services.AddScoped<IPlayPlanStore, PlayPlanStore>();
         services.AddScoped<IUserProfileStore, UserProfileStore>();
+
+        services.AddMemoryCache();
+        services.AddOptions<IsThereAnyDealOptions>().BindConfiguration("IsThereAnyDeal");
+        services.AddHttpClient<IGameDeals, IsThereAnyDeal>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.isthereanydeal.com/");
+            client.Timeout = TimeSpan.FromSeconds(8);
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false })
+            .RemoveAllLoggers();
 
         services.AddOptions<RawgOptions>().BindConfiguration("Rawg");
         services.AddHttpClient<RawgCatalog>(client =>

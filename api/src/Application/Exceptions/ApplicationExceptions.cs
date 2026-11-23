@@ -23,3 +23,11 @@ public sealed class SteamGameDataPrivateException : Exception;
 public sealed class SteamGameDataUnavailableException : Exception;
 
 public sealed class ProfileNotFoundException : Exception;
+
+public sealed class DiscordUnavailableException : Exception;
+
+public sealed class DiscordLinkConflictException : Exception;
+public sealed class DiscordOAuthNotConfiguredException : Exception;
+
+public sealed class DealsNotConfiguredException : Exception;
+public sealed class DealsUnavailableException : Exception;

@@ -4,10 +4,10 @@ import { Component, input } from '@angular/core';
   selector: 'app-auth-layout',
   standalone: true,
   template: `
-    <div class="auth-stage">
+    <div class="auth-stage" [class.auth-stage--login]="loginBackground()">
       <div class="auth-card">
         <div class="auth-card__brand">
-          <img class="auth-logo" src="nextquest.png" alt="NextQuest" width="44" height="44" />
+          <img class="auth-logo" src="nextquest-coelho.png" alt="NextQuest" width="44" height="44" />
           <div>
             <h1>{{ title() }}</h1>
             <p>{{ subtitle() }}</p>
@@ -27,6 +27,27 @@ import { Component, input } from '@angular/core';
         radial-gradient(circle at 20% 15%, rgba(11, 105, 122, 0.26), transparent 44%),
         radial-gradient(circle at 80% 85%, rgba(181, 227, 76, 0.1), transparent 45%),
         var(--bg-canvas);
+    }
+
+    .auth-stage--login {
+      justify-items: start;
+      padding-inline: clamp(24px, 10vw, 180px);
+      background: linear-gradient(90deg, #0b1419aa, transparent 68%),
+        url('/login-coelho-hd.webp') 72% center / cover no-repeat, var(--bg-canvas);
+    }
+
+    .auth-stage--login .auth-card {
+      box-sizing: border-box;
+      background: rgba(20, 23, 26, 0.94);
+      backdrop-filter: none;
+    }
+
+    @media (max-width: 700px) {
+      .auth-stage--login {
+        justify-items: center;
+        padding-inline: 16px;
+        background-position: center, 83% center;
+      }
     }
 
     .auth-card {
@@ -71,6 +92,7 @@ import { Component, input } from '@angular/core';
   `,
 })
 export class AuthLayoutComponent {
+  readonly loginBackground = input(false);
   readonly title = input.required<string>();
   readonly subtitle = input.required<string>();
 }

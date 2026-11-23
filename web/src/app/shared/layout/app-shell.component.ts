@@ -38,7 +38,7 @@ const TOP_TABS: TopTab[] = [
       <aside class="rail" aria-label="Menu lateral">
         <div class="rail__brand-row">
           <a class="brand" routerLink="/backlog" (click)="closeMobileMenu()">
-            <img class="brand__logo" src="nextquest.png" alt="NextQuest" width="40" height="40" />
+            <img class="brand__logo" src="nextquest-coelho.png" alt="NextQuest" width="40" height="40" />
             <span class="rail__label brand__text">
               <strong>NextQuest</strong>
               <small>Game Library</small>
@@ -86,11 +86,17 @@ const TOP_TABS: TopTab[] = [
             class="rail__item"
             routerLink="/catalog"
             routerLinkActive="is-active"
-            data-tooltip="Catálogo RAWG"
+            data-tooltip="Catálogo"
             (click)="closeMobileMenu()"
           >
             <span class="ms-icon" aria-hidden="true">storefront</span>
-            <span class="rail__label">Catálogo RAWG</span>
+            <span class="rail__label">Catálogo</span>
+          </a>
+
+          <a class="rail__item" routerLink="/deals" routerLinkActive="is-active"
+            data-tooltip="Promoções" (click)="closeMobileMenu()">
+            <span class="ms-icon" aria-hidden="true">sell</span>
+            <span class="rail__label">Promoções</span>
           </a>
 
           <a
@@ -191,8 +197,8 @@ const TOP_TABS: TopTab[] = [
                   type="search"
                   name="quickQuery"
                   [(ngModel)]="quickQuery"
-                  placeholder="Buscar no catálogo RAWG..."
-                  aria-label="Buscar jogos no catálogo RAWG"
+                  placeholder="Buscar no catálogo..."
+                  aria-label="Buscar jogos no catálogo"
                   autofocus
                 />
                 <button

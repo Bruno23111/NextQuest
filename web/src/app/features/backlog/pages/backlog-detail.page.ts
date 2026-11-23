@@ -1,5 +1,8 @@
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { switchMap, EMPTY, catchError } from 'rxjs';
+import { CatalogApi } from '../../catalog/services/catalog.api';
+import { DiscordInviteComponent } from '../../discord/discord-invite.component';
+import { DiscordShareComponent } from '../../discord/discord-share.component';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { switchMap, EMPTY, catchError, of, startWith } from 'rxjs';
 import { PlayPlanApi, QueuedGame } from '../services/play-plan.api';
 import { GameJournalComponent } from '../components/game-journal.component';
 import { PlayQueueComponent } from '../components/play-queue.component';
@@ -11,6 +14,7 @@ import { parseApiError } from '../../../core/errors/problem-details';
 import { BacklogGame, GameStatus } from '../../../core/models/api.models';
 import { FeedbackBannerComponent } from '../../../shared/components/feedback-banner.component';
 import { GameCoverComponent } from '../../../shared/components/game-cover.component';
+import { MetacriticBadgeComponent } from '../../../shared/components/metacritic-badge.component';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge.component';
 import { BacklogApi } from '../services/backlog.api';
 
@@ -32,6 +36,8 @@ const STATUS_CHOICES: StatusChoice[] = [
   selector: 'app-backlog-detail-page',
   standalone: true,
   imports: [
+    DiscordShareComponent,
+    DiscordInviteComponent,
     PlayQueueComponent,
     GameJournalComponent,
     DatePipe,
@@ -39,15 +45,50 @@ const STATUS_CHOICES: StatusChoice[] = [
     RouterLink,
     FeedbackBannerComponent,
     GameCoverComponent,
+    MetacriticBadgeComponent,
     StatusBadgeComponent,
   ],
   template: `
     <div class="nq-page">
-      <div>
+      <div class="detail-topbar">
         <a routerLink="/backlog" class="nq-btn nq-btn--ghost">
           <span class="ms-icon" aria-hidden="true">arrow_back</span>
           Voltar à Biblioteca
         </a>
+
+        @if (game(); as item) {
+          <div class="detail-topbar__actions">
+            @if (item.rawgId) {
+              <a [routerLink]="['/catalog', item.rawgId]" class="nq-btn nq-btn--secondary">
+                <span class="ms-icon" aria-hidden="true">rate_review</span>
+                Ver críticas no catálogo
+              </a>
+            } @else {
+              <a
+                routerLink="/catalog"
+                [queryParams]="{ q: item.title }"
+                class="nq-btn nq-btn--secondary"
+              >
+                <span class="ms-icon" aria-hidden="true">storefront</span>
+                Buscar no catálogo
+              </a>
+            }
+            <app-discord-invite
+              [gameId]="item.id"
+              [title]="item.title"
+              [platform]="item.platform"
+              [cover]="item.coverUrl ?? null"
+            />
+            @if (item.status === 'completed') {
+              <app-discord-share
+                [target]="{ gameId: item.id }"
+                [title]="'Jogo zerado: ' + item.title"
+                [description]="'Plataforma: ' + item.platform"
+                [image]="item.coverUrl ?? null"
+              />
+            }
+          </div>
+        }
       </div>
 
       <app-feedback-banner [message]="errorMessage()" tone="error" />
@@ -62,6 +103,13 @@ const STATUS_CHOICES: StatusChoice[] = [
               <img [src]="cover" alt="" aria-hidden="true" />
             }
             <div class="detail-hero__scrim"></div>
+            @if (catalogGame(); as metadata) {
+              @if (metadata.rawgId === item.rawgId && metadata.metacriticScore != null) {
+                <div class="detail-hero__score">
+                  <app-metacritic-badge [score]="metadata.metacriticScore" />
+                </div>
+              }
+            }
           </div>
 
           <div class="detail-hero__content">
@@ -79,118 +127,146 @@ const STATUS_CHOICES: StatusChoice[] = [
               <div class="detail-hero__badges">
                 <app-status-badge [status]="status" />
                 <span class="nq-chip">{{ item.platform }}</span>
-                @if (item.rawgId) {
-                  <span class="nq-chip nq-chip--accent">RAWG #{{ item.rawgId }}</span>
-                }
                 <span class="detail-date">Adicionado em {{ item.createdAt | date: 'dd/MM/yyyy' }}</span>
               </div>
             </div>
           </div>
         </section>
-        <app-play-queue [candidate]="item" />
-        <app-game-journal id="diario" [gameId]="item.id" />
-        @if (nextGame(); as next) {
-          <section class="nq-card" id="proximo-da-fila" aria-labelledby="proximo-da-fila-titulo">
-            <h2 id="proximo-da-fila-titulo">Próximo da fila</h2>
-            <p>{{ next.title }}</p>
-            <button type="button" class="nq-btn nq-btn--primary" [disabled]="saving() || deleting()"
-              (click)="startNext(next)">Começar a jogar</button>
-            <button type="button" class="nq-btn nq-btn--ghost" [disabled]="saving()"
-              (click)="nextGame.set(null)">Agora não</button>
-          </section>
-        }
 
         <div class="detail-columns">
-          <form class="nq-card edit-form" (ngSubmit)="save()">
-            <h2>Editar jogo</h2>
+          <div class="detail-col">
+            <form class="nq-card edit-form" (ngSubmit)="save()">
+              <h2>Editar jogo</h2>
 
-            <div class="nq-field">
-              <label for="edit-title">Título</label>
-              <input id="edit-title" name="title" [(ngModel)]="title" required />
-            </div>
-
-            <div class="nq-field">
-              <label for="edit-platform">Plataforma</label>
-              <input id="edit-platform" name="platform" [(ngModel)]="platform" required />
-            </div>
-
-            <div class="nq-field">
-              <label>Status do progresso</label>
-              <div class="nq-status-selector" role="radiogroup" aria-label="Status do jogo">
-                @for (choice of statusChoices; track choice.value) {
-                  <button
-                    type="button"
-                    class="nq-status-option"
-                    [class.is-selected]="status === choice.value"
-                    [style.--status-color]="choice.colorVar"
-                    (click)="status = choice.value"
-                  >
-                    <span class="ms-icon" aria-hidden="true">{{ choice.icon }}</span>
-                    {{ choice.label }}
-                  </button>
-                }
+              <div class="nq-field">
+                <label for="edit-title">Título</label>
+                <input id="edit-title" name="title" [(ngModel)]="title" required />
               </div>
-            </div>
 
-            <div class="edit-actions">
-              <button type="submit" class="nq-btn nq-btn--primary" [disabled]="saving()">
-                <span class="ms-icon" aria-hidden="true">save</span>
-                {{ saving() ? 'Salvando...' : 'Salvar alterações' }}
-              </button>
-            </div>
-          </form>
+              <div class="nq-field">
+                <label for="edit-platform">Plataforma</label>
+                <input id="edit-platform" name="platform" [(ngModel)]="platform" required />
+              </div>
 
-          <aside class="nq-card danger-panel">
-            <h2>Informações & Ações</h2>
-            <dl class="meta-list">
-              <div>
-                <dt>Plataforma atual</dt>
-                <dd>{{ item.platform }}</dd>
-              </div>
-              <div>
-                <dt>Data de cadastro</dt>
-                <dd>{{ item.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
-              </div>
-              @if (item.rawgId) {
-                <div>
-                  <dt>Origem</dt>
-                  <dd>Catálogo RAWG (#{{ item.rawgId }})</dd>
+              <div class="nq-field">
+                <label>Status do progresso</label>
+                <div class="nq-status-selector" role="radiogroup" aria-label="Status do jogo">
+                  @for (choice of statusChoices; track choice.value) {
+                    <button
+                      type="button"
+                      class="nq-status-option"
+                      [class.is-selected]="status === choice.value"
+                      [style.--status-color]="choice.colorVar"
+                      (click)="status = choice.value"
+                    >
+                      <span class="ms-icon" aria-hidden="true">{{ choice.icon }}</span>
+                      {{ choice.label }}
+                    </button>
+                  }
                 </div>
-              }
-            </dl>
+              </div>
 
-            <div class="danger-zone">
-              <p>Remover este jogo exclui apenas o registro do seu backlog pessoal.</p>
-              @if (!confirmingDelete()) {
-                <button
-                  type="button"
-                  class="nq-btn nq-btn--danger"
-                  (click)="confirmingDelete.set(true)"
-                >
-                  <span class="ms-icon" aria-hidden="true">delete_outline</span>
-                  Remover jogo
+              <div class="edit-actions">
+                <button type="submit" class="nq-btn nq-btn--primary" [disabled]="saving()">
+                  <span class="ms-icon" aria-hidden="true">save</span>
+                  {{ saving() ? 'Salvando...' : 'Salvar alterações' }}
                 </button>
-              } @else {
+              </div>
+            </form>
+
+            <app-game-journal id="diario" [gameId]="item.id" />
+          </div>
+
+          <div class="detail-col">
+            @if (nextGame(); as next) {
+              <section class="nq-bento-card" id="proximo-da-fila" aria-labelledby="proximo-da-fila-titulo">
+                <div class="nq-bento-header">
+                  <h2 id="proximo-da-fila-titulo">Próximo da fila</h2>
+                  <span class="nq-chip nq-chip--accent">Sugestão</span>
+                </div>
+                <p class="next-title">{{ next.title }}</p>
                 <div class="confirm-row">
                   <button
                     type="button"
-                    class="nq-btn nq-btn--danger"
-                    [disabled]="deleting()"
-                    (click)="deleteGame()"
+                    class="nq-btn nq-btn--primary"
+                    [disabled]="saving() || deleting()"
+                    (click)="startNext(next)"
                   >
-                    {{ deleting() ? 'Removendo...' : 'Confirmar exclusão' }}
+                    <span class="ms-icon ms-icon--filled" aria-hidden="true">play_arrow</span>
+                    Começar a jogar
                   </button>
                   <button
                     type="button"
                     class="nq-btn nq-btn--ghost"
-                    (click)="confirmingDelete.set(false)"
+                    [disabled]="saving()"
+                    (click)="nextGame.set(null)"
                   >
-                    Cancelar
+                    Agora não
                   </button>
                 </div>
-              }
-            </div>
-          </aside>
+              </section>
+            }
+
+            <app-play-queue [candidate]="item" [catalog]="[item]" />
+
+            <aside class="nq-card danger-panel">
+              <h2>Informações & Ações</h2>
+              <dl class="meta-list">
+                <div>
+                  <dt>Plataforma atual</dt>
+                  <dd>{{ item.platform }}</dd>
+                </div>
+                <div>
+                  <dt>Data de cadastro</dt>
+                  <dd>{{ item.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                </div>
+                @if (catalogGame(); as metadata) {
+                  @if (metadata.rawgId === item.rawgId && metadata.metacriticUrl; as reviews) {
+                    <div>
+                      <dt>Críticas</dt>
+                      <dd>
+                        <a [href]="reviews" target="_blank" rel="noopener noreferrer">
+                          Ler críticas no Metacritic
+                        </a>
+                      </dd>
+                    </div>
+                  }
+                }
+              </dl>
+
+              <div class="danger-zone">
+                <p>Remover este jogo exclui apenas o registro do seu backlog pessoal.</p>
+                @if (!confirmingDelete()) {
+                  <button
+                    type="button"
+                    class="nq-btn nq-btn--danger"
+                    (click)="confirmingDelete.set(true)"
+                  >
+                    <span class="ms-icon" aria-hidden="true">delete_outline</span>
+                    Remover jogo
+                  </button>
+                } @else {
+                  <div class="confirm-row">
+                    <button
+                      type="button"
+                      class="nq-btn nq-btn--danger"
+                      [disabled]="deleting()"
+                      (click)="deleteGame()"
+                    >
+                      {{ deleting() ? 'Removendo...' : 'Confirmar exclusão' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="nq-btn nq-btn--ghost"
+                      (click)="confirmingDelete.set(false)"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                }
+              </div>
+            </aside>
+          </div>
         </div>
       }
     </div>
@@ -206,7 +282,7 @@ const STATUS_CHOICES: StatusChoice[] = [
 
     .detail-hero__banner {
       position: relative;
-      height: 230px;
+      height: clamp(300px, 30vw, 420px);
       overflow: hidden;
       background:
         radial-gradient(circle at 25% 20%, rgba(11, 105, 122, 0.4), transparent 55%),
@@ -216,16 +292,27 @@ const STATUS_CHOICES: StatusChoice[] = [
         width: 100%;
         height: 100%;
         object-fit: cover;
-        filter: blur(22px) saturate(1.1);
-        transform: scale(1.08);
-        opacity: 0.52;
+        object-position: center 18%;
+        display: block;
       }
     }
 
     .detail-hero__scrim {
       position: absolute;
       inset: 0;
-      background: linear-gradient(to top, #101113 6%, rgba(16, 17, 19, 0.35) 75%);
+      background: linear-gradient(
+        to top,
+        var(--bg-surface) 0%,
+        rgba(16, 17, 19, 0.52) 42%,
+        rgba(16, 17, 19, 0.1) 100%
+      );
+    }
+
+    .detail-hero__score {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      z-index: 2;
     }
 
     .detail-hero__content {
@@ -271,10 +358,38 @@ const STATUS_CHOICES: StatusChoice[] = [
       font-size: 0.84rem;
     }
 
+    .detail-topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .detail-topbar__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .detail-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    .next-title {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
     .detail-columns {
       display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 20px;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 22px;
       align-items: start;
     }
 
@@ -342,6 +457,7 @@ export class BacklogDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(BacklogApi);
+  private readonly catalog = inject(CatalogApi);
   private readonly playPlan = inject(PlayPlanApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
@@ -350,6 +466,11 @@ export class BacklogDetailPageComponent implements OnInit {
 
   protected readonly statusChoices = STATUS_CHOICES;
   protected readonly game = signal<BacklogGame | null>(null);
+  protected readonly catalogGame = toSignal(toObservable(this.game).pipe(
+    switchMap(game => game?.rawgId
+      ? this.catalog.find(game.rawgId).pipe(startWith(null), catchError(() => of(null)))
+      : of(null)),
+  ), { initialValue: null });
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly deleting = signal(false);

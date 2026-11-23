@@ -94,7 +94,12 @@ public sealed class RawgCatalog(HttpClient client, IOptions<RawgOptions> options
         var cover = Uri.TryCreate(game.BackgroundImage, UriKind.Absolute, out var image) && image.Scheme == Uri.UriSchemeHttps
             ? image.AbsoluteUri : null;
 
-        return new(game.Id, Limit(game.Name, 250), cover, platforms);
+        var score = game.Metacritic is >= 0 and <= 100 ? game.Metacritic : null;
+        var reviews = Uri.TryCreate(game.MetacriticUrl, UriKind.Absolute, out var url) &&
+            url.Scheme == Uri.UriSchemeHttps && url.UserInfo.Length == 0 &&
+            (url.Host is "www.metacritic.com" or "metacritic.com") ? url.AbsoluteUri : null;
+
+        return new(game.Id, Limit(game.Name, 250), cover, platforms, score, reviews);
     }
 
     private static string Limit(string value, int maxLength)

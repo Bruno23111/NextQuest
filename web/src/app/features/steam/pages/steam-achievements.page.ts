@@ -1,3 +1,4 @@
+import { DiscordShareComponent } from '../../discord/discord-share.component';
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -12,7 +13,7 @@ type AchievementFilter = 'all' | 'unlocked' | 'locked';
 @Component({
   selector: 'app-steam-achievements-page',
   standalone: true,
-  imports: [PaginationComponent, DatePipe, RouterLink, FeedbackBannerComponent],
+  imports: [DiscordShareComponent, PaginationComponent, DatePipe, RouterLink, FeedbackBannerComponent],
   template: `
     <div class="nq-page">
       <div>
@@ -110,6 +111,9 @@ type AchievementFilter = 'all' | 'unlocked' | 'locked';
                 </div>
                 <div class="ach-status">
                   @if (item.achieved) {
+                    <app-discord-share [target]="{ appId: ach.appId, apiName: item.apiName }"
+                      [title]="'Conquista: ' + item.name" [description]="ach.gameName"
+                      [image]="item.iconUrl ?? null" />
                     <span class="nq-chip nq-chip--accent">Desbloqueada</span>
                     @if (item.unlockedAt) {
                       <small>{{ item.unlockedAt | date: 'dd/MM/yyyy' }}</small>

@@ -24,6 +24,10 @@ export class CatalogApi {
     return this.http.get<PagedResult<CatalogGame>>(`${this.apiBase}/catalog/games`, { params });
   }
 
+  find(rawgId: number): Observable<CatalogGame> {
+    return this.http.get<CatalogGame>(`${this.apiBase}/catalog/games/${rawgId}`);
+  }
+
   importGame(payload: ImportGameRequest): Observable<BacklogGame> {
     return this.http.post<BacklogGame>(`${this.apiBase}/backlog/import`, payload);
   }

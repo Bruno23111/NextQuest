@@ -1,3 +1,5 @@
+import { RouterLink } from '@angular/router';
+import { DiscordSettingsComponent } from '../../discord/discord-settings.component';
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthStore } from '../../../core/auth/auth.store';
@@ -9,7 +11,7 @@ import { ProfileApi } from '../services/profile.api';
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [FormsModule, FeedbackBannerComponent],
+  imports: [RouterLink, DiscordSettingsComponent, FormsModule, FeedbackBannerComponent],
   template: `
     <div class="nq-page">
       <app-feedback-banner [message]="errorMessage()" tone="error" />
@@ -47,59 +49,84 @@ import { ProfileApi } from '../services/profile.api';
               <p>{{ bio || 'Adicione uma descrição para personalizar seu perfil.' }}</p>
             </div>
 
-            <button
-              type="button"
-              class="nq-btn nq-btn--secondary"
-              [disabled]="linkingSteam()"
-              (click)="linkSteam()"
-            >
-              <span class="ms-icon" aria-hidden="true">sports_esports</span>
-              {{ linkingSteam() ? 'Conectando...' : 'Vincular conta Steam' }}
-            </button>
+
           </div>
         </section>
 
-        <form class="nq-card profile-form" (ngSubmit)="save()">
-          <h2>Editar perfil (prévia ao vivo acima)</h2>
+        <div class="profile-grid">
+          <form class="nq-card profile-form" (ngSubmit)="save()">
+            <h2>Editar perfil (prévia ao vivo acima)</h2>
 
-          <div class="form-grid">
-            <div class="nq-field">
-              <label for="prof-name">Nome de exibição (máx. 60)</label>
-              <input
-                id="prof-name"
-                name="displayName"
-                [(ngModel)]="displayName"
-                required
-                maxlength="60"
-              />
+            <div class="form-grid">
+              <div class="nq-field">
+                <label for="prof-name">Nome de exibição (máx. 60)</label>
+                <input
+                  id="prof-name"
+                  name="displayName"
+                  [(ngModel)]="displayName"
+                  required
+                  maxlength="60"
+                />
+              </div>
             </div>
 
-          </div>
+            <div class="nq-field">
+              <label for="prof-bio">Descrição (máx. 300)</label>
+              <textarea
+                id="prof-bio"
+                name="bio"
+                rows="3"
+                [(ngModel)]="bio"
+                maxlength="300"
+                placeholder="Conte sobre seus gêneros favoritos ou metas de backlog..."
+              ></textarea>
+            </div>
 
-          <div class="nq-field">
-            <label for="prof-bio">Descrição (máx. 300)</label>
-            <textarea
-              id="prof-bio"
-              name="bio"
-              rows="3"
-              [(ngModel)]="bio"
-              maxlength="300"
-              placeholder="Conte sobre seus gêneros favoritos ou metas de backlog..."
-            ></textarea>
-          </div>
+            <small class="upload-hint">PNG, JPEG ou WebP, até 8 MB por imagem.</small>
+            <div>
+              <button type="submit" class="nq-btn nq-btn--primary" [disabled]="saving()">
+                <span class="ms-icon" aria-hidden="true">save</span>
+                {{ saving() ? 'Salvando...' : 'Salvar perfil' }}
+              </button>
+            </div>
+          </form>
 
-          <small class="upload-hint">PNG, JPEG ou WebP, até 8 MB por imagem.</small>
-          <div>
-            <button type="submit" class="nq-btn nq-btn--primary" [disabled]="saving()">
-              <span class="ms-icon" aria-hidden="true">save</span>
-              {{ saving() ? 'Salvando...' : 'Salvar perfil' }}
-            </button>
-          </div>
-        </form>
+          <app-discord-settings>
+            <section class="steam-integration" aria-labelledby="steam-integration-title">
+              <div>
+                <h3 id="steam-integration-title">Steam</h3>
+                <p>{{ profileStore.profile()?.steamLinked ? 'Conta vinculada' : 'Conta desconectada' }}</p>
+              </div>
+              @if (profileStore.profile()?.steamLinked) {
+                <a class="nq-btn nq-btn--secondary" routerLink="/backlog"
+                  [queryParams]="{ collection: 'steam' }">Abrir biblioteca Steam</a>
+              } @else {
+                <button type="button" class="nq-btn nq-btn--secondary"
+                  [disabled]="linkingSteam()" (click)="linkSteam()">
+                  {{ linkingSteam() ? 'Conectando…' : 'Vincular conta Steam' }}
+                </button>
+              }
+            </section>
+          </app-discord-settings>
+        </div>
       }
     </div>
   `,
   styles: `
+    .steam-integration {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+
+    .steam-integration h3 { margin: 0; }
+    .steam-integration p { margin: 4px 0 0; color: var(--text-muted); }
+
     .profile-preview {
       border-radius: var(--radius-xl);
       overflow: hidden;
@@ -213,6 +240,19 @@ import { ProfileApi } from '../services/profile.api';
 
     .profile-banner .edit-image { top: 12px; right: 12px; bottom: auto; }
 
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .profile-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .upload-hint {
       color: var(--text-muted);
     }
@@ -221,7 +261,7 @@ import { ProfileApi } from '../services/profile.api';
 export class ProfilePageComponent implements OnInit, OnDestroy {
   private readonly api = inject(ProfileApi);
   private readonly auth = inject(AuthStore);
-  private readonly profileStore = inject(UserProfileStore);
+  protected readonly profileStore = inject(UserProfileStore);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);

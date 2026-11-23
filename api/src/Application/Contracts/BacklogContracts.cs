@@ -20,4 +20,6 @@ public sealed record CatalogGame(
     int RawgId,
     string Title,
     string? CoverUrl,
-    IReadOnlyList<CatalogPlatform> Platforms);
+    IReadOnlyList<CatalogPlatform> Platforms,
+    int? MetacriticScore = null,
+    string? MetacriticUrl = null);
