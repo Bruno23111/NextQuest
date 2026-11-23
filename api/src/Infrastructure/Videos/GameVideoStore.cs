@@ -1,4 +1,5 @@
 using GamesBacklog.Application;
+using GamesBacklog.Domain;
 using GamesBacklog.Infrastructure.Catalog;
 using GamesBacklog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,20 @@ public sealed class GameVideoStore(BacklogDbContext db, TimeProvider clock)
 
     public Task<string[]> PublishedIds(string[] ids, CancellationToken ct) =>
         db.Set<GameVideo>().Where(video => ids.Contains(video.Id)).Select(video => video.Id).ToArrayAsync(ct);
+
+    public Task<PublishedVideo[]> ForLibrary(Guid owner, int limit, CancellationToken ct)
+    {
+        var cutoff = clock.GetUtcNow() - MaxAge;
+        var library = db.Backlog.Where(game => game.OwnerId == owner && game.RawgId != null);
+        return (from video in db.Set<GameVideo>()
+                where video.CheckedAt > cutoff && video.RawgId != null &&
+                    library.Any(game => game.RawgId == video.RawgId)
+                join entry in db.Set<CatalogEntry>() on video.RawgId equals (int?)entry.Id
+                orderby library.Any(game => game.RawgId == video.RawgId && game.Status == GameStatus.Playing) descending,
+                    video.PublishedAt descending, video.Id
+                select new PublishedVideo(video.Id, video.Title, video.Channel, video.ThumbnailUrl, video.Category,
+                    video.RawgId, entry.Title, video.CanPlayHere)).Take(limit).ToArrayAsync(ct);
+    }
 
     public Task Publish(YouTubeVideo video, string category, int? rawgId, CancellationToken ct)
     {

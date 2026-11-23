@@ -1742,6 +1742,41 @@
         ]
       }
     },
+    "/api/v1/week": {
+      "get": {
+        "tags": [
+          "Minha semana"
+        ],
+        "operationId": "GetMyWeek",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeekOverview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/admin/catalog/access": {
       "get": {
         "tags": [
@@ -6375,6 +6410,91 @@
           }
         }
       },
+      "WeekGame": {
+        "required": [
+          "id",
+          "title",
+          "platform",
+          "coverUrl",
+          "nextObjective"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nextObjective": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WeekOverview": {
+        "required": [
+          "playing",
+          "queue",
+          "offers",
+          "videos"
+        ],
+        "type": "object",
+        "properties": {
+          "playing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeekGame"
+            }
+          },
+          "queue": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeekGame"
+            }
+          },
+          "offers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WishlistOffer"
+            }
+          },
+          "videos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedVideo"
+            }
+          }
+        }
+      },
+      "WishlistOffer": {
+        "required": [
+          "rawgId",
+          "offer"
+        ],
+        "type": "object",
+        "properties": {
+          "rawgId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offer": {
+            "$ref": "#/components/schemas/GameDeal"
+          }
+        }
+      },
       "WriteGameReview": {
         "required": [
           "rating",
@@ -6448,6 +6568,9 @@
     },
     {
       "name": "Vídeos"
+    },
+    {
+      "name": "Minha semana"
     },
     {
       "name": "Administração"

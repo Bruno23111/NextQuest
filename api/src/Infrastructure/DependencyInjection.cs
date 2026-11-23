@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<SocialStore>();
         services.AddScoped<PlayStationStore>();
         services.AddScoped<GameVideoStore>();
+        services.AddScoped<WeekOverviewStore>();
         services.AddHostedService<YouTubeRefreshService>();
         services.AddOptions<YouTubeOptions>().BindConfiguration("YouTube");
         services.AddHttpClient<YouTubeClient>(client =>

@@ -18,6 +18,8 @@ public sealed class PublishedDeal
     public required string Data { get; init; }
 }
 
+public sealed record WishlistOffer(int RawgId, GameDeal Offer);
+
 public sealed class StoredDeals(BacklogDbContext db, TimeProvider clock) : IGameDeals
 {
     private const int PageSize = 20;
@@ -33,6 +35,27 @@ public sealed class StoredDeals(BacklogDbContext db, TimeProvider clock) : IGame
 
     public Task<GameDealsPage> List(int offset, DealSort sort, DealShop? shop, bool popular, CancellationToken ct) =>
         Read(Active(shop).Where(deal => !popular || deal.Popular), offset, sort, paginate: true, ct);
+
+    public async Task<IReadOnlyList<WishlistOffer>> ForWishlist(Guid owner, int limit, CancellationToken ct)
+    {
+        // The two catalogs use different IDs. Match full titles after normalizing punctuation and case.
+        var matches = await db.Database.SqlQuery<WishlistOfferRow>($"""
+            WITH wished AS (
+                SELECT w."GameId" AS "RawgId", regexp_replace(lower(g."Title"), '[^[:alnum:]]+', '', 'g') AS title_key
+                FROM "Wishes" w INNER JOIN "CatalogEntries" g ON g."Id" = w."GameId"
+                WHERE w."OwnerId" = {owner}
+            ), best AS (
+                SELECT DISTINCT ON (w."RawgId") w."RawgId", d."Data", d."Discount"
+                FROM wished w INNER JOIN "PublishedDeals" d
+                    ON regexp_replace(lower(d."Title"), '[^[:alnum:]]+', '', 'g') = w.title_key
+                WHERE d."ExpiresAt" > {clock.GetUtcNow()} AND w.title_key <> ''
+                ORDER BY w."RawgId", (d."Currency" <> 'BRL'), d."Currency", d."Price",
+                    d."Discount" DESC, d."GameId", d."Shop"
+            )
+            SELECT "RawgId", "Data" FROM best ORDER BY "Discount" DESC, "RawgId" LIMIT {limit}
+            """).ToArrayAsync(ct);
+        return matches.Select(row => new WishlistOffer(row.RawgId, ReadOffer(row.Data))).ToArray();
+    }
 
     public async Task Publish(GameDeal deal, bool popular, DateTimeOffset expiresAt, CancellationToken ct)
     {
@@ -101,4 +124,6 @@ public sealed class StoredDeals(BacklogDbContext db, TimeProvider clock) : IGame
             ? deal with { CoverUrl = IsThereAnyDeal.CoverFor(deal.Id) }
             : deal;
     }
+
+    private sealed record WishlistOfferRow(int RawgId, string Data);
 }

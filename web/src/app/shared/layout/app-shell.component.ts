@@ -40,7 +40,7 @@ const TOP_TABS: TopTab[] = [
     >
       <aside class="rail" aria-label="Menu lateral">
         <div class="rail__brand-row">
-          <a class="brand" routerLink="/backlog" (click)="closeMobileMenu()">
+          <a class="brand" routerLink="/week" (click)="closeMobileMenu()">
             <img class="brand__logo" src="nextquest-coelho.png" alt="NextQuest" width="40" height="40" />
             <span class="rail__label brand__text">
               <strong>NextQuest</strong>
@@ -74,6 +74,12 @@ const TOP_TABS: TopTab[] = [
         <div class="rail__divider" role="separator"></div>
 
         <nav class="rail__nav" aria-label="Navegação principal">
+          <a class="rail__item" routerLink="/week" routerLinkActive="is-active"
+            data-tooltip="Minha semana" (click)="closeMobileMenu()">
+            <span class="ms-icon" aria-hidden="true">calendar_month</span>
+            <span class="rail__label">Minha semana</span>
+          </a>
+
           <a
             class="rail__item"
             routerLink="/backlog"

@@ -16,6 +16,10 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       {
+        path: 'week',
+        loadComponent: () => import('./features/week/week.page').then((m) => m.WeekPage),
+      },
+      {
         path: 'backlog',
         loadChildren: () =>
           import('./features/backlog/backlog.routes').then((m) => m.BACKLOG_ROUTES),
@@ -88,7 +92,7 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),
       },
-      { path: '', redirectTo: 'backlog', pathMatch: 'full' },
+      { path: '', redirectTo: 'week', pathMatch: 'full' },
     ],
   },
   { path: '**', redirectTo: '' },

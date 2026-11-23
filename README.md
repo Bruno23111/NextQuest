@@ -213,6 +213,10 @@ Em **Adicionar jogos em lote**, escolha **Populares** ou **Novidades** e uma qua
 
 Em Promoções, o lote consulta o ranking do IsThereAnyDeal e publica apenas os títulos que têm desconto disponível no Brasil. O lote preserva registros existentes, inclusive ofertas expiradas. Para renovar uma oferta, use a publicação individual.
 
+#### Minha semana
+
+A tela inicial reúne os jogos que você marcou como **Jogando**, os próximos jogos planejados da fila, as ofertas ativas da sua lista de desejos e os vídeos vinculados à sua biblioteca. A API lê o PostgreSQL. As ofertas são associadas pelo título completo após normalização de maiúsculas e pontuação, pois RAWG e IsThereAnyDeal usam identificadores diferentes.
+
 #### Vídeos de jogos
 
 Habilite a **YouTube Data API v3** no seu projeto Google Cloud e configure a chave em `YouTube__ApiKey` no arquivo de ambiente da API. Em **Administração → Vídeos**, busque vídeos no YouTube ou cole um link, escolha a categoria e, se quiser, vincule um jogo publicado no catálogo. O mesmo vídeo aparece apenas uma vez e pode ser retirado da aba pelo administrador.

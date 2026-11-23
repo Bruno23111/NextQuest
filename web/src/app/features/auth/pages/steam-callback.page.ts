@@ -82,7 +82,7 @@ export class SteamCallbackPageComponent implements OnInit {
     this.auth.redeemSteamLogin(payload, pending.remember ?? true).subscribe({
       next: () => {
         this.loading.set(false);
-        void this.router.navigate(['/backlog']);
+        void this.router.navigate(['/week']);
       },
       error: (err) => {
         this.loading.set(false);

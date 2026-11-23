@@ -191,7 +191,7 @@ export class LoginPageComponent {
     this.auth.login({ email: this.email.trim(), password: this.password }, this.remember).subscribe({
       next: () => {
         this.loading.set(false);
-        void this.router.navigate(['/backlog']);
+        void this.router.navigate(['/week']);
       },
       error: (err) => {
         this.loading.set(false);

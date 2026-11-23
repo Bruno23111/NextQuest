@@ -49,6 +49,7 @@ public static class ApiHost
         api.MapSocial();
         api.MapPlayStation();
         api.MapGameVideos();
+        api.MapWeek();
         api.MapDiscord();
     }
 }
